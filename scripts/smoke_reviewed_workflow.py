@@ -16,7 +16,7 @@ CLI=ROOT/'dsh-doc-audits/scripts/repo_docs.py'
 
 def main():
     with tempfile.TemporaryDirectory(prefix='dsh-smoke-') as directory:
-        area=Path(directory); repo=area/'app'; repo.mkdir(); control=area/'control'; control.mkdir()
+        area=Path(directory); repo=area/'app'; repo.mkdir(); control=repo/'.dsh-doc-audits'
         observations=[]
         def run(args, expected=0):
             result=subprocess.run(args,capture_output=True,text=True,timeout=30)
@@ -38,7 +38,7 @@ def main():
         git('init','-b','main');git('config','user.name','Synthetic Fixture');git('config','user.email','fixture@example.invalid')
         git('add','.');git('commit','-m','synthetic baseline')
         cli('doctor','--repo',str(repo))
-        draft=cli('plan','--repo',str(repo))
+        draft=cli('plan','--repo',str(repo),'--output',str(control/'draft.json'))
         assert draft['state']=='draft' and not draft['authority_candidates']
         body='# Answer service\n\nStatus: current authority\n\nThe function answer in api/main.py returns 42 and has no external dependencies.\n'
         proposal={'author_context_id':'synthetic-author','authority_candidates':[{
@@ -85,6 +85,8 @@ def main():
         assert complete['ok']
         local=json.loads(run([sys.executable,str(repo/'scripts/verify_docs.py'),'--repo',str(repo),'--completion','--json']))
         assert local['ok']
+        # The control directory's own .gitignore keeps every control file out of Git.
+        assert git('status','--porcelain','--untracked-files=all','--','.dsh-doc-audits')==''
         output={'ok':True,'review_evidence':'synthetic-fixture','independent_model_evaluated':False,
                 'apply_status':applied['status'],'repeat_status':repeated['status'],
                 'completion_status':'contract-accepted','commands':observations}

@@ -46,7 +46,7 @@ python <skill-dir>/scripts/repo_docs.py review-pack --repo <repo> --plan <contro
 python <skill-dir>/scripts/repo_docs.py apply --repo <repo> --plan <control>/plan.json --review <control>/review.json --dry-run --json
 ```
 
-The agent authors the proposal; the script never invents subsystem names. Keep control files outside the target or in its untracked `.dsh-doc-audits/` directory. Use an isolated clean worktree; explicit `--allow-in-place` permits a clean ordinary checkout. Remove `--dry-run` only when the task authorizes writes and the reviewer approves this exact plan. No automatic reviewer or approval is supplied.
+The agent authors the proposal; the script never invents subsystem names. `<control>` is `<repo>/.dsh-doc-audits`, which the tool makes Git-ignored on its first write. Reuse these names so reruns overwrite them; delete the directory once completion is verified. Use an isolated clean worktree; explicit `--allow-in-place` permits a clean ordinary checkout. Remove `--dry-run` only when the task authorizes writes and the reviewer approves this exact plan. No automatic reviewer or approval is supplied.
 
 ## Completion
 

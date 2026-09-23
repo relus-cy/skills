@@ -14,6 +14,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / 'dsh-doc-audits/scripts/repo_docs.py'
 GUARD = CLI.with_name('workflow_guard.py')
+CONTROL_DIR = '.dsh-doc-audits'
 
 
 def load_guard():
@@ -32,6 +33,11 @@ def git(root, *args):
 def write(path, content):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding='utf-8')
+
+
+def plan_output(repo, output):
+    return subprocess.run([sys.executable, str(CLI), 'plan', '--repo', str(repo), '--output', str(output), '--json'],
+                          capture_output=True, text=True)
 
 
 class WorkflowTests(unittest.TestCase):
@@ -332,22 +338,70 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(before,self.g.snapshot(self.root))
 
     def test_cli_full_roundtrip(self):
-        control = Path(self.tmp.name) / 'control'
-        control.mkdir()
-        proposal_path=control/'proposal.json'
-        proposal_path.write_text(json.dumps(self.proposal))
-        plan_path=control/'plan.json'
+        # The default control directory, reached through the unresolved temporary path (a symlink on macOS).
+        control = self.root / '.dsh-doc-audits'
         def cli(*args):
             result=subprocess.run([sys.executable,str(CLI),*args,'--json'],capture_output=True,text=True)
             self.assertEqual(result.returncode,0,result.stderr+result.stdout)
             return json.loads(result.stdout)
+        cli('plan','--repo',str(self.root),'--output',str(control/'draft.json'))
+        proposal_path=control/'proposal.json'
+        proposal_path.write_text(json.dumps(self.proposal))
+        plan_path=control/'plan.json'
         plan=cli('plan','--repo',str(self.root),'--proposal',str(proposal_path),'--output',str(plan_path))
-        pack=cli('review-pack','--repo',str(self.root),'--plan',str(plan_path))
+        pack=cli('review-pack','--repo',str(self.root),'--plan',str(plan_path),'--output',str(control/'review-package.json'))
         self.assertEqual(pack['plan_digest'],plan['plan_digest'])
         review_path=control/'review.json'
         review_path.write_text(json.dumps(self.review(plan)))
         result=cli('apply','--repo',str(self.root),'--plan',str(plan_path),'--review',str(review_path),'--allow-in-place')
         self.assertEqual(result['status'],'applied')
+        self.assertEqual(git(self.root,'status','--porcelain','--untracked-files=all','--',CONTROL_DIR),'')
+
+    def test_control_writes_make_the_directory_ignore_itself(self):
+        before = self.g.snapshot(self.root)
+        draft = self.root / CONTROL_DIR / 'draft.json'
+        for _ in range(2):
+            result = plan_output(self.root, draft)
+            self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root/CONTROL_DIR/'.gitignore').read_text(encoding='utf-8'), self.g.CONTROL_IGNORE)
+        self.assertEqual(sorted(p.name for p in (self.root/CONTROL_DIR).iterdir()), ['.gitignore','draft.json'])
+        self.assertEqual(git(self.root,'status','--porcelain','--untracked-files=all'), '')
+        self.assertEqual(before, self.g.snapshot(self.root))
+
+    def test_existing_control_ignore_file_is_kept(self):
+        write(self.root/CONTROL_DIR/'.gitignore', 'plan.json\n')
+        result = plan_output(self.root, self.root/CONTROL_DIR/'plan.json')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.root/CONTROL_DIR/'.gitignore').read_text(encoding='utf-8'), 'plan.json\n')
+
+    def test_apply_lock_directory_ignores_itself(self):
+        self.assertEqual(self.apply()['status'], 'applied')
+        self.assertEqual((self.root/CONTROL_DIR/'.gitignore').read_text(encoding='utf-8'), self.g.CONTROL_IGNORE)
+        self.assertFalse((self.root/CONTROL_DIR/'apply.lock').exists())
+
+    def test_control_output_through_linked_repository_path(self):
+        alias = Path(self.tmp.name) / 'alias'
+        alias.symlink_to(self.root, target_is_directory=True)
+        result = plan_output(alias, alias/CONTROL_DIR/'draft.json')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.root/CONTROL_DIR/'draft.json').is_file())
+        # A link inside the repository still cannot stand in for the control directory.
+        (self.root/'control-link').symlink_to(self.root/CONTROL_DIR, target_is_directory=True)
+        rejected = plan_output(self.root, self.root/'control-link'/'plan.json')
+        self.assertEqual(rejected.returncode, 2)
+        self.assertIn('outside the repository or in .dsh-doc-audits/', rejected.stderr)
+        self.assertFalse((self.root/CONTROL_DIR/'plan.json').exists())
+
+    def test_outside_control_output_rejects_symlinked_ancestors(self):
+        area = Path(self.tmp.name).resolve()
+        real = area / 'controls'; real.mkdir()
+        link = area / 'controls-link'; link.symlink_to(real, target_is_directory=True)
+        rejected = plan_output(self.root, link/'draft.json')
+        self.assertEqual(rejected.returncode, 2)
+        self.assertIn(f'control output ancestor may not be a symlink: {link} -> {real}', rejected.stderr)
+        self.assertEqual(plan_output(self.root, real/'draft.json').returncode, 0)
+        self.assertTrue((real/'draft.json').is_file())
+        self.assertFalse((self.root/CONTROL_DIR).exists())
 
     def test_invalid_receipt_path_is_rejected_before_apply(self):
         plan=self.plan(); controls=Path(self.tmp.name)/'controls'; controls.mkdir()

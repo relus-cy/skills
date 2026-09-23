@@ -13,7 +13,7 @@ Run `python dsh-doc-audits/scripts/repo_docs.py <command> --repo <path>`. `docto
 
 ## Execution
 
-`apply --plan <json> --review <json> --dry-run` preflights the reviewed contents. A write run requires a clean Git root and either a linked worktree or explicit `--allow-in-place`. Self-review is rejected without explicit `--allow-self-review` and is marked degraded. Changed snapshots, unresolved conflicts, non-approve verdicts and altered plans stop application. Control files belong outside the target or in its untracked `.dsh-doc-audits/` directory.
+`apply --plan <json> --review <json> --dry-run` preflights the reviewed contents. A write run requires a clean Git root and either a linked worktree or explicit `--allow-in-place`. Self-review is rejected without explicit `--allow-self-review` and is marked degraded. Changed snapshots, unresolved conflicts, non-approve verdicts and altered plans stop application. Control files belong in the target's `.dsh-doc-audits/`; the first control write there adds a `.gitignore` of `*`, so Git ignores the directory. Links above the repository root are followed as for `--repo`; below it, and anywhere on a path outside the target, symlinks are rejected.
 
 The write set is exact, documentation-only, with narrowly named verifier/CI exceptions. Symlinks, hardlinks, traversal, product files, frozen archives and first-pass historical rewrites are rejected. A repeat against the exact post-apply snapshot returns already-applied. No verification, deployment, commit or publication commands are executed from a plan. Per-file replacement is atomic; caught failures restore owned bytes. Multi-file crash atomicity and hostile-concurrent-writer protection are outside the tool's guarantees.
 

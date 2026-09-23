@@ -858,20 +858,22 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _control_output_path(repo, filename):
     root = _normalize_repo(repo)
+    guard = _workflow_guard()
     output = Path(filename).expanduser().absolute()
-    resolved = output.resolve()
-    if resolved.is_relative_to(root):
-        rel = resolved.relative_to(root).as_posix()
-        if not rel.startswith(".dsh-doc-audits/"):
-            raise ValueError("control output must be outside the repository or in .dsh-doc-audits/")
-        _workflow_guard().safe_path(root, output.relative_to(root).as_posix())
     if output.is_symlink():
         raise ValueError("control output may not be a symlink")
-    ancestor = output.parent
-    while ancestor != ancestor.parent:
-        if ancestor.is_symlink():
-            raise ValueError("control output ancestor may not be a symlink")
-        ancestor = ancestor.parent
+    # Match the repository by identity: links above its root (macOS /tmp, /var) resolve with it, as for --repo.
+    entry = next((parent for parent in output.parents if parent.exists() and parent.samefile(root)), None)
+    if entry is not None:
+        rel = output.relative_to(entry).as_posix()
+        if not rel.startswith(guard.CONTROL + "/"):
+            raise ValueError("control output must be outside the repository or in .dsh-doc-audits/")
+        output = guard.safe_path(root, rel)
+    else:
+        linked = next((parent for parent in output.parents if parent.is_symlink()), None)
+        if linked is not None:
+            raise ValueError(f"control output ancestor may not be a symlink: {linked} -> {linked.resolve()}; "
+                             "write to the repository's .dsh-doc-audits/ or a path without symlinks")
     if output.exists() and (not output.is_file() or output.stat().st_nlink > 1):
         raise ValueError("control output must be an ordinary single-link file")
     return output
@@ -879,6 +881,9 @@ def _control_output_path(repo, filename):
 
 def _write_control_output(repo, filename, payload):
     output = _control_output_path(repo, filename)
+    root = _normalize_repo(repo)
+    if output.is_relative_to(root):
+        _workflow_guard().control_directory(root)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 

@@ -20,6 +20,8 @@ from typing import Any
 VERSION = '0.2.0'
 SCHEMAS = Path(__file__).resolve().parents[1] / 'schemas'
 CONTROL = '.dsh-doc-audits'
+# `*` also matches this file, so Git and gitignore-aware search skip the whole directory.
+CONTROL_IGNORE = '# dsh-doc-audits control files; delete this directory once the migration is verified.\n*\n'
 GENERATED = {'scripts/verify_docs.py', '.github/workflows/docs-governance.yml'}
 MAX_JSON_BYTES = 16 * 1024 * 1024
 
@@ -148,6 +150,20 @@ def safe_path(root: Path, rel: str) -> Path:
     if not path.resolve().is_relative_to(root):
         raise ValueError(f'path escapes repository: {rel}')
     return path
+
+
+def control_directory(root: Path) -> Path:
+    """Create the control directory with its own .gitignore; project ignore files stay untouched."""
+    control=safe_path(root,CONTROL)
+    control.mkdir(exist_ok=True)
+    try:
+        # O_EXCL never follows a link and never replaces an existing ignore file.
+        fd=os.open(control/'.gitignore',os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o644)
+    except FileExistsError:
+        return control
+    with os.fdopen(fd,'w',encoding='utf-8') as stream:
+        stream.write(CONTROL_IGNORE)
+    return control
 
 
 def _file_digest(content: bytes, mode: int, kind='file') -> str:
@@ -468,9 +484,7 @@ def apply_plan(repo, plan, review, *, dry_run=False, allow_in_place=False, allow
     if dry_run:
         return {**result,'ok':True,'status':'dry-run','changed_files':[],
                 'would_change':[c['path'] for c in plan['changes']]}
-    control=safe_path(root,CONTROL)
-    control.mkdir(exist_ok=True)
-    lock=control/'apply.lock'
+    lock=control_directory(root)/'apply.lock'
     try:
         fd=os.open(lock,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
         os.close(fd)

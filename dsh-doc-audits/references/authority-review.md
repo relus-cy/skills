@@ -8,7 +8,7 @@ Each candidate records `id`, `path`, `tier`, `responsibility`, `evidence`, `curr
 
 JSON Schemas live in the bundle's `schemas/` directory: `proposal.schema.json`, `migration-plan.schema.json`, `review-package.schema.json`, `review-result.schema.json`, and `fresh-session-result.schema.json`. The dependency-free validator supports exactly the schema subset used here and rejects unsupported keywords. This is not a general-purpose JSON Schema implementation.
 
-Control artifacts must be outside the target or inside its untracked `.dsh-doc-audits/`. Prefer an external temporary directory for large review packages. No production secrets should enter proposal bodies, diffs or review reports.
+Keep control artifacts in the target's `.dsh-doc-audits/`. The tool's first write there creates `.dsh-doc-audits/.gitignore` containing `*`, which keeps the directory out of `git status`, `git add` and gitignore-aware search without editing project files. Fixed names let each run overwrite the last. Delete the directory once completion is verified; removing a linked worktree deletes it too. An outside path works only when no ancestor is a symlink, and macOS `/tmp` and `/var` are symlinks. No production secrets should enter proposal bodies, diffs or review reports.
 
 The proposal's `files` object contains:
 
@@ -22,7 +22,7 @@ The proposal's `files` object contains:
 
 `write_scope` lists exact paths, including both sides of a move. `link_repairs` lists `{path, targets}` with repository-relative target paths. `verification` and `rollback` are reviewer instructions; no commands in them are executed. `open_conflicts` blocks application. Separate conflict-free work into its own plan.
 
-`plan --proposal` seals a prepared plan. Its snapshot covers Git HEAD, branch, checkout root and hashes/modes of tracked and non-ignored untracked files. Git-ignored runtime files are outside that snapshot; tracked files remain covered even when an ignore pattern matches. The untracked control directory is excluded. No timestamps alone serve as proof of freshness.
+`plan --proposal` seals a prepared plan. Its snapshot covers Git HEAD, branch, checkout root and hashes/modes of tracked and non-ignored untracked files. Git-ignored runtime files are outside that snapshot; tracked files remain covered even when an ignore pattern matches. The control directory is excluded. No timestamps alone serve as proof of freshness.
 
 `review-pack` contains candidates, scope, operations, preserved paths and one exact diff. It omits duplicate full-document bodies and the full repository fingerprint map. Reviewers can read more of the referenced repository when needed.
 

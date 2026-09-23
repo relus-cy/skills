@@ -10,7 +10,7 @@ A green structural scaffold can be mistaken for completed semantic migration. Br
 
 The agent supplies evidence-backed owner candidates and exact document edits. Scripts gather checkout facts, seal the prepared plan, export a compact review package and enforce approved scope. Ordinary in-place application requires explicit permission; fresh-context or human review remains a declared external judgment. Scaffolds have a distinct status and cannot pass completion.
 
-The standalone verifier is generated from the same source checks as the CLI and scans the same Git-visible files as plan snapshots. Because historical bodies are preserved, a broken link inside `tiers.historical` is a warning rather than an error no reviewed plan could repair. No remote model, project-specific architecture generator, production command execution or automatic publication is introduced.
+The standalone verifier is generated from the same source checks as the CLI and scans the same Git-visible files as plan snapshots. Because historical bodies are preserved, a broken link inside `tiers.historical` is a warning rather than an error no reviewed plan could repair. Control files default to the target's `.dsh-doc-audits/`; the tool's first write there adds a `*` `.gitignore`, as CPython's `venv`, pytest and ruff do for their own directories, so no project file is edited and nothing there can be staged by accident. No remote model, project-specific architecture generator, production command execution or automatic publication is introduced.
 
 ## Alternatives considered
 
@@ -22,6 +22,10 @@ The standalone verifier is generated from the same source checks as the CLI and 
 
 **Configurable historical link severity.** A manifest switch would add schema surface and could restore blocking errors that the write boundary forbids repairing. `exclude` already removes a path from every scan.
 
+**External temporary control directory.** It keeps the checkout untouched, but macOS `/tmp` and `/var` are symlinks that the output check rejects, and exempting system links would complicate that check.
+
+**Project ignore entry.** A line in the project's `.gitignore` or `.git/info/exclude` would also work, but both are files the write boundary otherwise leaves alone.
+
 ## Consequences
 
-The main skill stays short, with detail loaded only for the selected workflow. Major migrations gain an explicit plan/review/apply boundary. Stale links in historical records stay visible without failing CI. Scripts cannot prove semantic accuracy, the identity of an external reviewer, or all-file crash atomicity. Separate model evaluation remains necessary for stronger assurance.
+The main skill stays short, with detail loaded only for the selected workflow. Major migrations gain an explicit plan/review/apply boundary. Stale links in historical records stay visible without failing CI. Removing a linked worktree also removes its control files; `git clean -fd` keeps them because they are ignored. Scripts cannot prove semantic accuracy, the identity of an external reviewer, or all-file crash atomicity. Separate model evaluation remains necessary for stronger assurance.
