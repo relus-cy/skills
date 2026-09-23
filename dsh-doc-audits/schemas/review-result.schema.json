@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "review-result",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "plan_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "verdict": {
+      "enum": [
+        "approve",
+        "revise",
+        "block"
+      ]
+    },
+    "reviewer": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "independent-agent",
+            "human",
+            "self"
+          ]
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "context_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "kind",
+        "identity",
+        "context_id"
+      ],
+      "additionalProperties": false
+    },
+    "missing_domains": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "over_split_owners": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "under_split_owners": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "authority_conflicts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "required_changes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "schema_version",
+    "plan_digest",
+    "verdict",
+    "reviewer",
+    "missing_domains",
+    "over_split_owners",
+    "under_split_owners",
+    "authority_conflicts",
+    "required_changes",
+    "summary"
+  ],
+  "additionalProperties": false
+}

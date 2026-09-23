@@ -1,38 +1,25 @@
-# dsh-doc-audits skill contract
+# Skill contract
 
 Status: current authority
-Source owner: `dsh-doc-audits/`
 
-## Skill identity
+## Interface
 
-- Directory: `dsh-doc-audits/`
-- Frontmatter name: `dsh-doc-audits`
-- Version: `0.1.0`
-- License: MIT
-- Runtime requirement: Python 3.11+ and Git for diff-aware checks
+`dsh-doc-audits/` is a top-level, self-contained Agent Skills bundle. `SKILL.md` owns activation and short task routing; references own detailed judgment criteria; JSON Schemas own control-artifact shape; scripts gather facts and enforce deterministic boundaries. The format follows the published Agent Skills specification. There are no mandatory external skills, model APIs or network services.
 
-## Activation scope
+## Modes and tools
 
-Use the skill for repository documentation bootstrap, brownfield migration, Git-diff synchronization, read-only corpus audit, and governance asset upgrades. It does not replace product design, code architecture implementation, or general prose editing.
+The agent selects bootstrap, migrate, sync, audit or upgrade. The CLI exposes doctor, inspect, plan, review-pack, bootstrap, apply, verify, audit and impact. Migrate/sync/upgrade are agent workflows; no autonomous domain discovery, prose rewriting or reviewer is hidden behind a CLI name.
 
-## Resource contract
+A capable model supplies the authority candidates and exact proposal. A separate reviewer supplies judgment. This separation keeps domain knowledge out of scripts and avoids fixed document counts or project-specific names in profiles.
 
-- `SKILL.md`: mode selection, standing rules, commands, completion contract.
-- `references/`: focused semantic standards read on demand.
-- `scripts/repo_docs.py`: dependency-free deterministic CLI.
-- `assets/repo-governance/`: target-repository templates.
-- `agents/openai.yaml`: optional client display metadata.
+## Safety and assurance
 
-## Target manifest
+Normal audit is read-only. Prepared plans bind exact bytes and checkout state. Apply accepts only approved, unchanged, scoped changes and never runs plan-supplied commands. Check results certify deterministic conditions, not semantic correctness. Self-review and self-simulated retrieval need explicit permission and are labeled degraded; an independent review cannot be claimed from author-written fixture JSON.
 
-`docs/governance.yaml` is JSON-compatible YAML. Schema version `1` defines named authority paths, current and historical glob tiers, Agent Note lifecycle mapping, character budgets, hard and soft code-to-doc impact mappings, and audit thresholds.
+## Compatibility
 
-## Exit codes
+Python 3.11+ and Git. JSON-compatible YAML remains the manifest encoding. Control JSON schemas reject missing and unexpected fields. Existing 0.1.0 manifests remain valid when they provide the original required fields with valid nested types. `exclude` is optional. Incomplete scaffolding can pass a structural bootstrap check with warnings and cannot pass completion.
 
-- `0`: command completed and no blocking verification error exists.
-- `1`: `verify`, `audit`, or `impact` found at least one blocking error.
-- `2`: invalid arguments, missing paths, malformed input, or execution failure.
+## Distribution
 
-## Compatibility promise
-
-Within `0.x`, command names and result fields may expand, but existing safety defaults remain: audit is read-only, bootstrap preserves existing files, and product code is out of scope. A schema change increments `schema_version` and requires an upgrade path.
+Copy or sync the whole `dsh-doc-audits/` directory, including scripts, schemas and references. A target's standalone verifier does not need that directory. The maintained source, templates and local generated verifier must remain consistent.

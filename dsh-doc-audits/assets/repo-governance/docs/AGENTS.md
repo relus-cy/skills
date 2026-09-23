@@ -17,7 +17,7 @@ Each durable fact has one current owner. Other pages summarize briefly and link 
 ## Writing rules
 
 - Describe current behavior in ordinary docs. Use Git history, Agent Notes, releases, plans, reports, handoffs, and postmortems for history.
-- Verify commands, defaults, paths, APIs, and failure behavior from the current checkout. Mark anything unverified and name its verification owner.
+- Verify safe, authorized commands in isolation; mark dangerous or unavailable operations unverified with an owner. Verify defaults, paths, APIs, and failure behavior from the current checkout. Mark anything unverified and name its verification owner.
 - Put detail at the nearest owner. Higher-level pages link down instead of repeating it.
 - Move a document and repair every inbound link in the same change.
 - Keep generated outputs read-only; edit their source or generator.
@@ -26,3 +26,5 @@ Each durable fact has one current owner. Other pages summarize briefly and link 
 ## Completion
 
 Run `python scripts/verify_docs.py --repo .`. Major migrations also require a fresh-context reader to find project purpose, architecture, one subsystem contract, one operating procedure, and one decision rationale without scanning the whole repository.
+
+Scaffolds use `Status: scaffold` until authored. They do not certify current behavior. Run the local verifier with `--completion` before declaring a migration ready; semantic review and independent-reader evidence remain separately required.

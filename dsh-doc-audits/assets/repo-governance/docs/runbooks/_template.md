@@ -1,6 +1,6 @@
 # Procedure name
 
-Status: current procedure
+Status: scaffold
 Owner: team or role
 Last verified: YYYY-MM-DD
 

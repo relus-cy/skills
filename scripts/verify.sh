@@ -22,7 +22,8 @@ print('python-ast: PASS')
 PY
 
 python -m unittest discover -s tests -v
-python scripts/verify_docs.py --repo . --json
+python scripts/generate_verifier.py --check
+python scripts/verify_docs.py --repo . --completion --json
 python dsh-doc-audits/scripts/repo_docs.py verify --repo . --json
 python dsh-doc-audits/scripts/repo_docs.py audit --repo . --json
 git diff --check

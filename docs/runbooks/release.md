@@ -1,59 +1,40 @@
-# Release dsh-doc-audits
+# Release the skills repository
 
 Status: current procedure
-Owner: repository maintainer
-Last verified: 2026-09-23
-
-## Outcome
-
-Produce a verified source commit and portable archive for a new skill version.
 
 ## Preconditions
 
-- Working tree contains only intended changes.
-- `SKILL.md`, `pyproject.toml`, `CHANGELOG.md`, generated asset metadata, and governance manifest agree on the version.
-- Python 3.11 or newer and Git are available.
+Use a clean checkout containing the proposed release. Keep private project data, credentials and actual review transcripts out of the public source. Inspect the Git remote before publication; this procedure never requires force-push.
 
-## Steps
+## Verify
 
-1. Run the full gate:
+Run from repository root:
 
-   ```bash
-   bash scripts/verify.sh
-   ```
+```bash
+bash scripts/verify.sh
+python scripts/smoke_reviewed_workflow.py
+```
 
-2. Inspect the working tree and commit history:
+The first command checks syntax, the complete test suite, generated asset freshness, documentation readiness and corpus checks. The second exercises the CLI in a disposable Git repository with explicitly synthetic review records. Neither proves a real model's semantic quality. Record separately whether an independent model assessment was performed.
 
-   ```bash
-   git status --short
-   git log --oneline -5
-   ```
+## Package
 
-3. Build portable artifacts outside the repository or under ignored `dist/`:
+Use a named release branch. Replace the branch and output names deliberately:
 
-   ```bash
-   mkdir -p dist
-   git archive --format=zip --output=dist/skills-source.zip HEAD
-   git bundle create dist/skills.git.bundle --all
-   ```
+```bash
+git bundle create ../skills-release.bundle <release-branch>
+git bundle verify ../skills-release.bundle
+git archive --format=zip --prefix=skills/ -o ../skills-release.zip <release-branch>
+```
 
-4. Verify both artifacts can be inspected:
+A full-history bundle allows clean import. Verify it from a repository, and test a fresh clone. Compute SHA-256 checksums of the deliverables. The bundle branch must descend from the previously published commit.
 
-   ```bash
-   unzip -t dist/skills-source.zip
-   git bundle verify dist/skills.git.bundle
-   ```
+## Publish into the existing GitHub repository
 
-5. Create and push the remote repository or release only through an authenticated environment with explicit write authorization.
+Fetch the bundle into a separate local branch. Fetch the remote's current main and inspect divergence. Fast-forward main only when Git accepts that relationship. Otherwise publish the release branch and review/merge through a pull request. Never create a replacement repository or use force to remove remote changes.
 
-## Verification
+Publication needs the user's authenticated Git environment and is a separate explicit action. A local test pass does not claim that GitHub Actions has run; inspect remote CI after upload.
 
-The full gate must pass with zero test failures and both artifact verification commands must return exit code `0`.
+## Recovery
 
-## Failure and recovery
-
-A failing gate blocks the release. Fix the owning source or test; do not edit generated artifacts. If an archive is bad, delete the ignored artifact and recreate it from a verified commit.
-
-## Rollback
-
-Artifacts are disposable. Remote rollback follows the hosting platform's repository or release controls and remains outside this runbook's automatic actions.
+Retain the original branch and full-history bundle. A failed fast-forward or rejected push leaves remote work intact; reconcile the branches rather than overwriting history.

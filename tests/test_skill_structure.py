@@ -49,10 +49,10 @@ class SkillStructureTests(unittest.TestCase):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         governance = (ROOT / "docs" / "governance.yaml").read_text(encoding="utf-8")
 
-        self.assertRegex(skill, r'(?m)^  version: "0\.1\.0"$')
-        self.assertRegex(pyproject, r'(?m)^version = "0\.1\.0"$')
-        self.assertIn("## 0.1.0", changelog)
-        self.assertIn('"skill_version": "0.1.0"', governance)
+        self.assertRegex(skill, r'(?m)^  version: "0\.2\.0"$')
+        self.assertRegex(pyproject, r'(?m)^version = "0\.2\.0"$')
+        self.assertIn("## 0.2.0", changelog)
+        self.assertIn('"skill_version": "0.2.0"', governance)
 
     def test_repository_has_license_and_attribution(self) -> None:
         self.assertTrue((ROOT / "LICENSE").is_file())

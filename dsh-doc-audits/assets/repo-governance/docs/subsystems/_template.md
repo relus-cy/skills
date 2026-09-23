@@ -1,6 +1,6 @@
 # Subsystem name
 
-Status: current authority
+Status: scaffold
 Owner paths: `path/to/code`
 
 ## Purpose

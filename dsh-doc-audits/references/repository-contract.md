@@ -41,13 +41,13 @@ Required top-level fields:
 - `budgets`: standing-document character ceilings.
 - `impact_mappings`: code patterns, owning docs, and `hard` or `soft` level.
 - `audit`: corpus-audit thresholds and authority terms.
-- `exclude`: paths omitted from corpus scans, such as test fixtures, generated artifacts, and virtual environments.
+Optional `exclude`: paths omitted from corpus scans, such as test fixtures, generated artifacts, and virtual environments.
 
 Optional metadata such as `skill_version`, `profile`, and `project` supports upgrades and reporting.
 
 ## Hard and soft mappings
 
-A hard mapping covers contracts where stale docs create meaningful operational or integration risk: public APIs, configuration, deployment, recovery, migrations, storage formats, security controls, or published workflows. A branch that changes mapped code must also change at least one owner or carry a separately reviewed no-impact record outside the generated verifier.
+A hard mapping covers contracts where stale docs create meaningful operational or integration risk: public APIs, configuration, deployment, recovery, migrations, storage formats, security controls, or published workflows. A branch that changes mapped code must also change at least one owner or stop for human review. The current verifier does not parse no-impact waivers.
 
 A soft mapping marks areas that require judgment, such as internal modules and non-observable refactors. The verifier warns but does not block.
 
@@ -57,7 +57,8 @@ Mappings are prompts to investigate, not proof that every changed file changes b
 
 `scripts/verify_docs.py` uses only Python's standard library and checks:
 
-- authority paths;
+- manifest nested types and authority paths;
+- scaffold/current/completion readiness;
 - tier overlap;
 - relative Markdown links;
 - Agent Note lifecycle and headings;

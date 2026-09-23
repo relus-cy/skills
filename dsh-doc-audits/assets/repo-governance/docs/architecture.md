@@ -1,6 +1,6 @@
 # {{PROJECT_NAME}} architecture
 
-Status: current authority
+Status: scaffold
 Last reviewed: {{DATE}}
 
 ## Purpose and boundaries

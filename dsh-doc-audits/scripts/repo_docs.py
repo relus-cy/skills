@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TEMPLATE_ROOT = SKILL_ROOT / "assets" / "repo-governance"
 
@@ -46,6 +46,7 @@ TARGET_FILES = (
 
 DEFAULT_EXCLUDE_PATTERNS = (
     ".git/**",
+    ".dsh-doc-audits/**",
     ".venv/**",
     "node_modules/**",
     "**/__pycache__/**",
@@ -226,6 +227,27 @@ def bootstrap_repository(
     }
 
     template_files = sorted(path for path in templates.rglob("*") if path.is_file())
+    # Preflight the complete template set before creating anything.
+    for source in template_files:
+        if source.is_symlink():
+            raise ValueError("template symlinks are not supported")
+        rel = source.relative_to(templates)
+        candidate = root
+        for part in rel.parts:
+            candidate = candidate / part
+            if candidate.is_symlink():
+                raise ValueError(f"bootstrap target crosses a symlink: {rel}")
+        if candidate.exists() and (not candidate.is_file() or candidate.stat().st_nlink > 1):
+            raise ValueError(f"bootstrap target is not an ordinary single-link file: {rel}")
+    if force:
+        generated = {"scripts/verify_docs.py", ".github/workflows/docs-governance.yml"}
+        for source in template_files:
+            rel = source.relative_to(templates)
+            target = root / rel
+            if target.exists() and rel.as_posix() not in generated:
+                rendered = _render_template(source.read_text(encoding="utf-8"), root, profile)
+                if target.read_text(encoding="utf-8") != rendered:
+                    raise ValueError(f"--force cannot overwrite project-owned document: {rel}")
     for source in template_files:
         rel = source.relative_to(templates)
         rel_text = rel.as_posix()
@@ -277,6 +299,100 @@ def _matches(path: str, pattern: str) -> bool:
     return fnmatchcase(normalized, pattern)
 
 
+def _manifest_issues(data: Any) -> list[str]:
+    """Validate the public manifest contract, including nested types, before use."""
+    issues: list[str] = []
+    if not isinstance(data, dict):
+        return ["root must be an object"]
+    required = {"schema_version", "authority", "tiers", "agent_notes", "budgets", "impact_mappings", "audit"}
+    issues.extend(f"missing field: {name}" for name in sorted(required - data.keys()))
+    if data.get("schema_version") != 1 or isinstance(data.get("schema_version"), bool):
+        issues.append("schema_version must be 1")
+    def strings(value: Any) -> bool:
+        return isinstance(value, list) and all(isinstance(x, str) and bool(x.strip()) for x in value)
+    def relative(value: Any, pattern: bool = False) -> bool:
+        return (isinstance(value, str) and bool(value) and not value.startswith(("/", "~"))
+                and "\\" not in value and ":" not in value and ".." not in value.split("/")
+                and not any(ord(c) < 32 for c in value)
+                and (pattern or not any(c in value for c in "*?[]")))
+    authority = data.get("authority")
+    if not isinstance(authority, dict) or not authority or not all(relative(v) for v in authority.values()):
+        issues.append("authority must be a nonempty map of names to relative file paths")
+    tiers = data.get("tiers")
+    if not isinstance(tiers, dict) or not strings(tiers.get("current")) or not strings(tiers.get("historical")):
+        issues.append("tiers must contain current and historical string arrays")
+    elif any(not strings(arr) for arr in tiers.values()) or not tiers["current"] or not all(relative(v, True) for arr in tiers.values() for v in arr):
+        issues.append("tiers require relative patterns and a nonempty current tier")
+    notes = data.get("agent_notes")
+    expected = {"proposed": "proposed", "implemented": "implemented", "rejected": "rejected", "archived": "implemented"}
+    if not isinstance(notes, dict) or not relative(notes.get("root")) or notes.get("statuses") != expected:
+        issues.append("agent_notes requires a relative root and the four lifecycle/status pairs")
+    budgets = data.get("budgets")
+    if not isinstance(budgets, dict):
+        issues.append("budgets must be an object")
+    else:
+        for path, rule in budgets.items():
+            if (not relative(path) or not isinstance(rule, dict) or rule.get("metric") != "unicode_chars"
+                    or type(rule.get("max")) is not int or rule["max"] < 1):
+                issues.append(f"invalid budget: {path}")
+    mappings = data.get("impact_mappings")
+    if not isinstance(mappings, list):
+        issues.append("impact_mappings must be an array")
+    else:
+        names = set()
+        for item in mappings:
+            if (not isinstance(item, dict) or not isinstance(item.get("name"), str) or not item["name"]
+                    or not strings(item.get("code")) or not item["code"]
+                    or not strings(item.get("docs")) or not item["docs"]
+                    or item.get("level") not in {"hard", "soft"}):
+                issues.append("each impact mapping requires name, code, docs and hard/soft level")
+            elif item["name"] in names or not all(relative(v, True) for v in item["code"] + item["docs"]):
+                issues.append("impact mappings require unique names and relative patterns")
+            else:
+                names.add(item["name"])
+    audit = data.get("audit")
+    if (not isinstance(audit, dict) or type(audit.get("duplicate_min_chars")) is not int
+            or audit["duplicate_min_chars"] < 1 or not strings(audit.get("historical_authority_terms"))):
+        issues.append("audit requires a positive duplicate_min_chars and historical_authority_terms array")
+    if "exclude" in data and (not strings(data["exclude"]) or not all(relative(v, True) for v in data["exclude"])):
+        issues.append("exclude must contain relative patterns")
+    return issues
+
+
+def _readiness_findings(root: Path, config: dict[str, Any], completion: bool = False) -> list[dict[str, Any]]:
+    """Scaffolding is allowed during bootstrap; never certify it as migrated."""
+    findings: list[dict[str, Any]] = []
+    prompts = re.compile(r"^(?:TODO|TBD|FIXME)(?:\b|[:：])|^\{\{[^}]+\}\}|"
+                         r"^(?:Describe|Record|Summarize|Name|State|Link|Document|List)\b.*(?:here\b|owning path|dependency order|a maintainer must|durable stores|capabilities may|environments and deployment)", re.I)
+    authority_paths = set(config.get("authority", {}).values())
+    for path in _current_markdown_files(root, config):
+        if path.name == "_template.md":
+            continue
+        rel = path.relative_to(root).as_posix()
+        text = path.read_text(encoding="utf-8")
+        scaffold = re.search(r"(?mi)^Status:\s*scaffold\s*$", text) is not None
+        if scaffold:
+            findings.append(_finding("documentation-scaffold", "error" if completion else "warning", rel,
+                                     "Scaffold is not current authority; semantic authoring is pending."))
+            continue
+        fenced = False
+        prose = []
+        for line_no, line in enumerate(text.splitlines(), 1):
+            stripped = line.strip()
+            if stripped.startswith(("```", "~~~")):
+                fenced = not fenced
+                continue
+            if fenced or not stripped or stripped.startswith(("#", ">", "<!--", "Status:", "Last reviewed:", "Owner paths:")):
+                continue
+            prose.append(stripped)
+            if prompts.search(re.sub(r"^(?:[-*+] |[0-9]+[.)] )", "", stripped)):
+                findings.append(_finding("current-authority-placeholder", "error", rel,
+                                         "Current documentation contains an unfinished authoring prompt.", line=line_no))
+        if completion and (rel in authority_paths or re.search(r"(?mi)^Status:\s*current authority", text)) and not prose:
+            findings.append(_finding("current-authority-empty", "error", rel, "Current owner has no substantive content."))
+    return findings
+
+
 def _load_governance(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
     path = root / "docs" / "governance.yaml"
     if not path.is_file():
@@ -302,6 +418,9 @@ def _load_governance(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, 
             "docs/governance.yaml",
             "The governance manifest root must be an object.",
         )]
+    issues = _manifest_issues(data)
+    if issues:
+        return None, [_finding("governance-invalid", "error", "docs/governance.yaml", issue) for issue in issues]
     return data, []
 
 
@@ -447,7 +566,7 @@ def _budget_findings(root: Path, config: dict[str, Any]) -> list[dict[str, Any]]
     return findings
 
 
-def verify_repository(repo: str | os.PathLike[str] | Path) -> dict[str, Any]:
+def verify_repository(repo: str | os.PathLike[str] | Path, *, completion: bool = False) -> dict[str, Any]:
     root = _normalize_repo(repo)
     config, findings = _load_governance(root)
     if config is None:
@@ -487,6 +606,7 @@ def verify_repository(repo: str | os.PathLike[str] | Path) -> dict[str, Any]:
     findings.extend(_markdown_link_findings(root, exclude_patterns))
     findings.extend(_agent_note_findings(root, config))
     findings.extend(_budget_findings(root, config))
+    findings.extend(_readiness_findings(root, config, completion))
     findings.sort(key=lambda item: (item["severity"], item["code"], item["path"], item["message"]))
     errors = sum(1 for finding in findings if finding["severity"] == "error")
     warnings = sum(1 for finding in findings if finding["severity"] != "error")
@@ -621,10 +741,34 @@ def _emit(payload: dict[str, Any], as_json: bool) -> None:
             print(f"{key}: {value}")
 
 
+def _workflow_guard():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("dsh_workflow_guard", Path(__file__).with_name("workflow_guard.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Repository documentation governance helper")
     parser.add_argument("--version", action="version", version=VERSION)
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    doctor_parser = subparsers.add_parser("doctor", help="read-only environment and Git preflight")
+    doctor_parser.add_argument("--repo", required=True)
+    doctor_parser.add_argument("--json", action="store_true")
+
+    for command in ("review-pack", "apply"):
+        stage = subparsers.add_parser(command)
+        stage.add_argument("--repo", required=True)
+        stage.add_argument("--plan", required=True)
+        stage.add_argument("--output")
+        stage.add_argument("--json", action="store_true")
+        if command == "apply":
+            stage.add_argument("--review", required=True)
+            stage.add_argument("--dry-run", action="store_true")
+            stage.add_argument("--allow-in-place", action="store_true")
+            stage.add_argument("--allow-self-review", action="store_true")
 
     inspect_parser = subparsers.add_parser("inspect", help="inventory a repository")
     inspect_parser.add_argument("--repo", required=True)
@@ -632,8 +776,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     plan_parser = subparsers.add_parser("plan", help="create a migration/bootstrap plan")
     plan_parser.add_argument("--repo", required=True)
-    plan_parser.add_argument("--profile", default="small-web-app")
+    plan_parser.add_argument("--profile", default="generic", help="context label; does not generate domain-specific owners")
     plan_parser.add_argument("--output")
+    plan_parser.add_argument("--proposal", help="model-authored JSON; omitting it produces an unexecutable draft")
+    plan_parser.add_argument("--mode", choices=["bootstrap", "migrate", "sync", "upgrade"], default="migrate")
     plan_parser.add_argument("--json", action="store_true")
 
     bootstrap_parser = subparsers.add_parser("bootstrap", help="install missing governance assets")
@@ -646,6 +792,9 @@ def _build_parser() -> argparse.ArgumentParser:
     verify_parser = subparsers.add_parser("verify", help="run deterministic governance checks")
     verify_parser.add_argument("--repo", required=True)
     verify_parser.add_argument("--json", action="store_true")
+    verify_parser.add_argument("--completion", action="store_true")
+    verify_parser.add_argument("--fresh-session", help="post-migration reader evidence JSON for completion")
+    verify_parser.add_argument("--allow-self-review", action="store_true")
 
     audit_parser = subparsers.add_parser("audit", help="run deterministic and corpus audit checks")
     audit_parser.add_argument("--repo", required=True)
@@ -660,18 +809,59 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _control_output_path(repo, filename):
+    root = _normalize_repo(repo)
+    output = Path(filename).expanduser().absolute()
+    resolved = output.resolve()
+    if resolved.is_relative_to(root):
+        rel = resolved.relative_to(root).as_posix()
+        if not rel.startswith(".dsh-doc-audits/"):
+            raise ValueError("control output must be outside the repository or in .dsh-doc-audits/")
+        _workflow_guard().safe_path(root, output.relative_to(root).as_posix())
+    if output.is_symlink():
+        raise ValueError("control output may not be a symlink")
+    ancestor = output.parent
+    while ancestor != ancestor.parent:
+        if ancestor.is_symlink():
+            raise ValueError("control output ancestor may not be a symlink")
+        ancestor = ancestor.parent
+    if output.exists() and (not output.is_file() or output.stat().st_nlink > 1):
+        raise ValueError("control output must be an ordinary single-link file")
+    return output
+
+
+def _write_control_output(repo, filename, payload):
+    output = _control_output_path(repo, filename)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
     try:
-        if args.command == "inspect":
+        if getattr(args, "output", None):
+            _control_output_path(args.repo, args.output)
+        if args.command == "doctor":
+            payload = _workflow_guard().doctor(args.repo)
+        elif args.command in {"review-pack", "apply"}:
+            guard = _workflow_guard()
+            plan = guard.read_json(args.plan)
+            if args.command == "review-pack":
+                payload = guard.review_package(args.repo, plan)
+            else:
+                payload = guard.apply_plan(args.repo, plan, guard.read_json(args.review),
+                    dry_run=args.dry_run, allow_in_place=args.allow_in_place, allow_self_review=args.allow_self_review)
+            if args.output:
+                _write_control_output(args.repo, args.output, payload)
+        elif args.command == "inspect":
             payload = inspect_repository(args.repo)
         elif args.command == "plan":
-            payload = build_plan(args.repo, profile=args.profile)
+            guard = _workflow_guard()
+            payload = guard.prepare_plan(args.repo, guard.read_json(args.proposal) if args.proposal else None,
+                                         profile=args.profile, mode=args.mode)
             if args.output:
-                output = Path(args.output).expanduser().resolve()
-                output.parent.mkdir(parents=True, exist_ok=True)
-                output.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+                _write_control_output(args.repo, args.output, payload)
         elif args.command == "bootstrap":
             payload = bootstrap_repository(
                 args.repo,
@@ -680,7 +870,16 @@ def main(argv: list[str] | None = None) -> int:
                 force=args.force,
             )
         elif args.command == "verify":
-            payload = verify_repository(args.repo)
+            payload = verify_repository(args.repo, completion=args.completion)
+            if args.completion:
+                if not args.fresh_session:
+                    payload["findings"].append(_finding("fresh-session-missing", "error", ".", "Completion requires post-migration fresh-session evidence."))
+                else:
+                    guard = _workflow_guard()
+                    payload["fresh_session"] = guard.validate_fresh_session(args.repo, guard.read_json(args.fresh_session), allow_self_review=args.allow_self_review)
+                payload["ok"] = not any(f["severity"] == "error" for f in payload["findings"])
+                payload["summary"] = {"errors": sum(f["severity"] == "error" for f in payload["findings"]),
+                                      "warnings": sum(f["severity"] != "error" for f in payload["findings"])}
         elif args.command == "audit":
             payload = audit_repository(args.repo)
         elif args.command == "impact":

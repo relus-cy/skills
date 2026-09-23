@@ -41,7 +41,7 @@ Never use an archived decision, old plan, handoff, or release note as the defaul
 
 Operational claims require observed evidence:
 
-- run commands exactly as written;
+- run safe, authorized commands as written in an isolated environment; never deploy or mutate production merely to validate a runbook;
 - inspect current source for defaults and supported values;
 - verify API and data shapes from handlers, schemas, tests, or generators;
 - record exact failure behavior when it affects users or operators;

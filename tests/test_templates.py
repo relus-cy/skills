@@ -157,7 +157,7 @@ class TemplateTests(unittest.TestCase):
 
     def test_repository_local_verifier_matches_rendered_asset(self) -> None:
         template = (ASSETS / "scripts" / "verify_docs.py").read_text(encoding="utf-8")
-        expected = template.replace("{{SKILL_VERSION}}", "0.1.0")
+        expected = template.replace("{{SKILL_VERSION}}", load_module().VERSION)
         actual = (ROOT / "scripts" / "verify_docs.py").read_text(encoding="utf-8")
         self.assertEqual(actual, expected)
 

@@ -1,6 +1,6 @@
 # Reference subject
 
-Status: current authority
+Status: scaffold
 Source owner: `path/to/source-or-generator`
 
 ## Scope

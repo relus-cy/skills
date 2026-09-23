@@ -1,42 +1,34 @@
 # Governance CLI
 
 Status: current authority
-Owner paths: `dsh-doc-audits/scripts/repo_docs.py`, `dsh-doc-audits/assets/repo-governance/scripts/verify_docs.py`
+Owner paths: `dsh-doc-audits/scripts/repo_docs.py`, `dsh-doc-audits/scripts/workflow_guard.py`
 
-## Purpose
+## Boundary
 
-The CLI turns the semantic governance model into safe, repeatable repository operations. It inventories repositories, proposes a migration plan, installs missing assets, checks deterministic invariants, audits selected corpus risks, and evaluates Git diff impact mappings.
+Run `python dsh-doc-audits/scripts/repo_docs.py <command> --repo <path>`. `doctor`, `inspect`, `plan`, `review-pack`, `verify`, `audit` and `impact` inspect the target; explicitly selected control outputs are the only writes in planning. `bootstrap` creates scaffolds. `apply` executes an exact prepared and reviewed document change. Python 3.11+ and Git are required, with no third-party runtime dependencies.
 
-## Public boundary
+## Plan and review
 
-Run the bundled CLI with Python:
+`plan` emits a draft with empty owner candidates. `--proposal <json>` accepts model-authored candidates and full changes, validates the schema and evidence, and binds the checkout/content to a digest. `review-pack --plan <json>` exports focused metadata and one exact diff. A separate human or fresh agent supplies the digest-bound review result. The tool cannot authenticate that reviewer or infer semantic correctness.
 
-```bash
-python dsh-doc-audits/scripts/repo_docs.py <command> --repo <path>
-```
+## Execution
 
-Commands are `inspect`, `plan`, `bootstrap`, `verify`, `audit`, and `impact`. `--json` returns stable machine-readable results. `bootstrap` supports `--dry-run` and `--force`; `impact` requires `--base` and accepts `--head`.
+`apply --plan <json> --review <json> --dry-run` preflights the reviewed contents. A write run requires a clean Git root and either a linked worktree or explicit `--allow-in-place`. Self-review is rejected without explicit `--allow-self-review` and is marked degraded. Changed snapshots, unresolved conflicts, non-approve verdicts and altered plans stop application. Control files belong outside the target or in its untracked `.dsh-doc-audits/` directory.
 
-## Safety semantics
+The write set is exact, documentation-only, with narrowly named verifier/CI exceptions. Symlinks, hardlinks, traversal, product files, frozen archives and first-pass historical rewrites are rejected. A repeat against the exact post-apply snapshot returns already-applied. No verification, deployment, commit or publication commands are executed from a plan. Per-file replacement is atomic; caught failures restore owned bytes. Multi-file crash atomicity and hostile-concurrent-writer protection are outside the tool's guarantees.
 
-- `inspect`, `plan`, `verify`, `audit`, and `impact` are read-only.
-- `bootstrap` creates missing files and preserves differing existing files.
-- `--force` updates template-owned collisions and must be used only after reviewing the plan.
-- Repeated bootstrap runs classify equal files as `unchanged` and create no duplicates.
-- The CLI never edits product code or automatically deletes historical material.
+## Verification
 
-## Verification semantics
+The verifier checks nested manifest types, owner existence, tier overlap, local Markdown paths, Note headings/status, budgets and unfinished current documents. Explicit scaffold status produces a normal warning and a completion error. Quoted history and fenced examples are excluded from authoring-prompt detection. These are bounded heuristics, not a proof of prose quality.
 
-`verify` checks governance manifest parsing, authority paths, current/historical overlap, relative Markdown links, Agent Note lifecycle and headings, and Unicode-character budgets. The generated repository-local verifier runs the same core checks and also reports duplicate-prose and historical-authority warnings in one pass.
+`audit` adds duplicate-prose and historical-authority warnings and still requires agent semantic review. `impact --base <ref> [--head <ref>]` uses committed three-dot Git differences and narrow owner mappings; a matching doc edit does not prove its accuracy. No PR no-impact waiver is parsed.
 
-`impact` reads `impact_mappings` from `docs/governance.yaml`. A changed hard-mapped code path with no changed owner document is an error; a soft mapping is a warning.
+`verify --completion --fresh-session <json>` requires all seven documented retrieval topics and a current snapshot. Results declare reviewer assurance and limitations; fabricated reviewer attestations cannot be detected cryptographically by this tool. Missing independent assessment must remain visible.
 
-`audit` includes deterministic findings and additionally reports repeated long prose across current owners and current docs that describe historical tiers as present authority.
+## Repository-local generation
 
-## Failure behavior
+`scripts/generate_verifier.py` selects the actual deterministic check functions from the CLI and creates both the bundled template and this repository's standalone verifier. `--check` fails on drift. Targets receive one Python file, without this skill or its planning module. The local `--completion` checks document readiness only; fresh-session evidence validation belongs to the global workflow.
 
-Invalid paths, missing templates, malformed governance manifests, or failed Git commands produce a nonzero CLI exit and a concrete error. Verification commands return exit code `1` when findings contain an error; usage and I/O failures return `2`.
+## Failure and recovery
 
-## Related decisions
-
-The portable governance boundary and JSON-compatible YAML choice are recorded in [the implemented Agent Note](../../.agents/notes/implemented/process/2026-09-23-portable-dsh-doc-governance.md).
+Findings return exit 1. Invalid inputs, schema failures, stale approvals and unsafe operations return exit 2. `apply` never claims full migration completion. `--force` during bootstrap refuses differing project-owned documents before writes; use reviewed generated-asset edits for upgrades. Detailed workflow contracts live in the skill's one-hop references and schemas.

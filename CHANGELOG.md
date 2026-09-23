@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0 — 2026-09-23
+
+- Kept the skill thin and project-neutral; models supply owner boundaries rather than fixed domain trees.
+- Added read-only doctor, snapshot-bound prepared plans, compact review packages and exact-scoped apply with a dry run.
+- Added schemas for proposals, plans, reviews and fresh-session results; stale or incomplete approvals are rejected.
+- Protected product paths, symlinks, hardlinks, frozen archives and existing historical bodies; caught write errors restore owned bytes.
+- Distinguished scaffold readiness from completed current documentation; empty manifests and placeholder authorities now fail their appropriate gates.
+- Generated repository-local checks from the maintained CLI to prevent verifier drift.
+- Explicitly labeled self-review, synthetic tests, declared reviewer attestations and unperformed independent model assessment.
+
+
 ## 0.1.0 — 2026-09-23
 
 - Added the standards-compliant `dsh-doc-audits` Agent Skill at the repository root for Skillshare-compatible discovery.

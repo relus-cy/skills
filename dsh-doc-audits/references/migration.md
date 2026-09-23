@@ -1,49 +1,21 @@
-# Migration Rules
+# Migration rules
 
-## Report first
+## Before changes
 
-Before writes, produce a migration plan with:
-
-- repository profile and evidence;
-- current documents and their apparent jobs;
-- proposed authority map;
-- files to create, edit, move, or preserve;
-- historical material and treatment;
-- inbound links to repair;
-- generated assets to install;
-- explicit exclusions, especially product code;
-- verification and rollback steps.
-
-## Merge mode
-
-Existing documents are evidence and project-owned content. Fill gaps, link to good material, and preserve files outside the selected governance scope. Do not overwrite, rename, or delete an existing document solely because a template prefers another name.
+Use read-only `doctor`, inspection and an unexecutable draft first. The model then proposes owners and exact edits with concrete repository evidence. Preserve the existing policy until a reviewed migration explicitly replaces it. Profiles are hints; they never prescribe business names or a fixed number of documents.
 
 ## Safe order
 
-1. Add missing current owners.
-2. Move or rewrite current facts into those owners.
-3. Update README and AGENTS routing.
-4. Demote historical plans and specs with status and current-owner links.
-5. Repair inbound links.
-6. Add repository-local verifier and CI.
-7. Run deterministic and semantic audits.
-8. Delete or archive only in a later reviewed cleanup.
+Prepare all new owners, routing changes, metadata-only historical demotions and link repairs in the same reviewed plan. Do not leave two current owners of the same fact. Preserve original historical bodies, production paths and frozen archives. Unknown production configuration remains unverified; source defaults do not override deployed evidence.
 
-## Idempotence
+## Application
 
-A repeated migration command must not duplicate files, paragraphs, links, notes, or status markers. Unchanged generated assets report `unchanged`; conflicting existing files report `preserved` unless explicit force applies to a known generated file.
+The prepared plan binds content and a repository snapshot. Reviewer approval binds that plan's digest. `apply --dry-run` checks the whole write set before any change. Then the authorized write run applies only that set. It does not execute commands embedded in documents or verification lists.
 
-## Authority conflicts
+Dirty repositories can be inspected. Move actual application to a clean worktree, or use explicit in-place permission on a clean checkout. Stop on changed snapshots, unresolved domain conflicts or a review verdict other than approve. Split independently decidable work into another plan instead of suppressing findings.
 
-Stop semantic writes for a domain when source, tests, and current documentation disagree in a way that changes user-visible or operational meaning and the repository cannot resolve it. Record the conflict, evidence, affected owners, and the decision required. Continue independent domains.
+## Completion and rollback
 
-## Rollback
+Apply returns a pending-verification receipt, never a completed migration. Run local checks, semantic review and a fresh-session assessment. Record all unverified operational claims and actual reviewer limitations. Scaffolds cannot pass completion.
 
-Use small commits grouped by governance layer:
-
-1. scaffold and manifest;
-2. current authority docs;
-3. routing and historical demotion;
-4. verifier and CI.
-
-A migration that changes product behavior belongs in a separate branch or plan.
+The tool restores its own changes after a caught write error. It cannot guarantee all-file atomicity after process termination or power loss. Inspect interrupted work and recover individual paths from Git or the plan's original snapshot. Preserve unrelated work. Never delete history or use force-push as recovery.

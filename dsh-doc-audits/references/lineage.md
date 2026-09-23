@@ -32,8 +32,13 @@ The portable skill does not require:
 - a JSON-compatible YAML governance manifest;
 - hard and soft Git diff mappings;
 - dependency-free Python verification;
-- profile-based scaffolding;
+- optional profile hints without fixed output trees;
+- prepared plans, compact review packages and exact-scoped application;
 - explicit idempotence and existing-document preservation;
 - fresh-session retrieval testing.
 
 DeepSeek Harness is MIT-licensed. Repository attribution is recorded in `THIRD_PARTY_NOTICES.md`.
+
+## Additional workflow reference
+
+The lightweight environment/review/verification boundary also reflects the user-selected engineering discussion at https://tw93.fun/2026-03-12/claude.html. It supplies workflow context, not a repository directory standard or a mandatory runtime dependency.

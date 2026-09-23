@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "skill_version": "0.1.0",
+  "skill_version": "0.2.0",
   "profile": "skill-repository",
   "project": "skills",
   "authority": {
@@ -37,7 +37,8 @@
     "node_modules/**",
     "**/__pycache__/**",
     "tests/fixtures/**",
-    "dist/**"
+    "dist/**",
+    ".dsh-doc-audits/**"
   ],
   "agent_notes": {
     "root": ".agents/notes",
@@ -121,8 +122,8 @@
     "historical_authority_terms": [
       "current authority",
       "source of truth",
-      "唯一权威",
-      "权威文档"
+      "\u552f\u4e00\u6743\u5a01",
+      "\u6743\u5a01\u6587\u6863"
     ]
   }
 }
