@@ -392,6 +392,16 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn('outside the repository or in .dsh-doc-audits/', rejected.stderr)
         self.assertFalse((self.root/CONTROL_DIR/'plan.json').exists())
 
+    def test_case_variant_repository_path_counts_as_inside(self):
+        # Resolved, so no symlinked ancestor can cause the rejection instead.
+        variant = self.root.parent.resolve() / self.root.name.upper()
+        if not variant.exists():
+            self.skipTest('case-sensitive filesystem')
+        rejected = plan_output(self.root, variant/'draft.json')
+        self.assertEqual(rejected.returncode, 2)
+        self.assertIn('outside the repository or in .dsh-doc-audits/', rejected.stderr)
+        self.assertFalse((self.root/'draft.json').exists())
+
     def test_outside_control_output_rejects_symlinked_ancestors(self):
         area = Path(self.tmp.name).resolve()
         real = area / 'controls'; real.mkdir()
