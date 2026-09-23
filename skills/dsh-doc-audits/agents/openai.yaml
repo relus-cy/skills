@@ -1,0 +1,4 @@
+interface:
+  display_name: "DSH Doc Audits"
+  short_description: "Govern and audit agent-readable repository docs"
+  default_prompt: "Use $dsh-doc-audits to inspect this repository, choose the correct governance mode, and preserve one current owner per durable fact."
