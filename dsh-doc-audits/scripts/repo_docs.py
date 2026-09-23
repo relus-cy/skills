@@ -73,20 +73,34 @@ def _normalize_repo(repo: str | os.PathLike[str] | Path) -> Path:
     return path
 
 
+def _git_worktree_files(repo: Path) -> set[str] | None:
+    """Tracked plus untracked non-ignored paths, as snapshot() sees them; None unless repo is a Git worktree root."""
+    # An inherited Git environment must not retarget reads to another checkout.
+    env = {key: value for key, value in os.environ.items()
+           if key not in {"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR"}}
+    try:
+        top = subprocess.run(["git", "-C", str(repo), "rev-parse", "--show-toplevel"],
+                             capture_output=True, env=env, timeout=30)
+        if top.returncode or Path(os.fsdecode(top.stdout.strip())).resolve() != repo.resolve():
+            return None
+        listed = subprocess.run(["git", "-C", str(repo), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+                                capture_output=True, env=env, timeout=30, check=True)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return {os.fsdecode(name) for name in listed.stdout.split(b"\0") if name}
+
+
 def _relative_files(repo: Path, exclude_patterns: Iterable[str] = ()) -> list[str]:
+    """Files Git shows at a worktree root; elsewhere every file under repo."""
     patterns = (*DEFAULT_EXCLUDE_PATTERNS, *(str(pattern) for pattern in exclude_patterns))
-    files: list[str] = []
-    for path in repo.rglob("*"):
-        if not path.is_file():
-            continue
-        try:
-            rel = path.relative_to(repo).as_posix()
-        except ValueError:
-            continue
-        if any(_matches(rel, pattern) for pattern in patterns):
-            continue
-        files.append(rel)
-    return sorted(files)
+    listed = _git_worktree_files(repo)
+    if listed is None:
+        listed = [path.relative_to(repo).as_posix() for path in repo.rglob("*")]
+    return sorted(
+        rel
+        for rel in listed
+        if (repo / rel).is_file() and not any(_matches(rel, pattern) for pattern in patterns)
+    )
 
 
 def _contains_token(repo: Path, paths: Iterable[str], tokens: Iterable[str]) -> bool:
@@ -424,13 +438,39 @@ def _load_governance(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, 
     return data, []
 
 
+def _markdown_prose_lines(text: str) -> Iterable[tuple[int, str]]:
+    """Yield numbered lines outside fenced code blocks, with inline code spans blanked.
+
+    A line-based CommonMark subset: an opening fence may follow indentation, blockquote or
+    list markers; only its own character repeated at least as often, alone on a line,
+    closes it. An unclosed fence runs to the end of the file.
+    """
+    opener_re = re.compile(r"(?:[ \t]*(?:>|[-*+][ \t]|\d{1,9}[.)][ \t]))*[ \t]*(`{3,}|~{3,})(.*)")
+    code_span_re = re.compile(r"(?<![`\\])(`+)(?!`).+?(?<!`)\1(?!`)")
+    fence = ""
+    for line_no, line in enumerate(text.splitlines(), start=1):
+        if fence:
+            marker = line.lstrip(" \t>").rstrip()
+            if len(marker) >= len(fence) and marker == fence[0] * len(marker):
+                fence = ""
+            continue
+        opener = opener_re.match(line)
+        # A backtick fence's info string cannot contain backticks; such a line is inline code.
+        if opener and not (opener.group(1)[0] == "`" and "`" in opener.group(2)):
+            fence = opener.group(1)
+            continue
+        yield line_no, code_span_re.sub(lambda span: " " * len(span.group(0)), line)
+
+
 def _markdown_link_findings(
     root: Path,
     exclude_patterns: Iterable[str] = (),
+    historical_patterns: Iterable[str] = (),
 ) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     link_re = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
     scheme_re = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+    historical_patterns = tuple(historical_patterns)
     for rel in _relative_files(root, exclude_patterns):
         if not rel.endswith(".md"):
             continue
@@ -439,12 +479,17 @@ def _markdown_link_findings(
             text = path.read_text(encoding="utf-8")
         except OSError:
             continue
-        for line_no, line in enumerate(text.splitlines(), start=1):
+        # Migrations preserve historical bodies, so their stale links are reported without blocking.
+        if any(_matches(rel, pattern) for pattern in historical_patterns):
+            severity, extra = "warning", {"tier": "historical"}
+        else:
+            severity, extra = "error", {}
+        for line_no, line in _markdown_prose_lines(text):
             for raw in link_re.findall(line):
                 target = raw.strip()
                 if target.startswith("<") and ">" in target:
                     target = target[1:target.index(">")]
-                else:
+                elif target:
                     target = target.split(maxsplit=1)[0]
                 if not target or target.startswith("#") or target.startswith("/") or scheme_re.match(target):
                     continue
@@ -457,19 +502,21 @@ def _markdown_link_findings(
                 except ValueError:
                     findings.append(_finding(
                         "markdown-link-outside",
-                        "error",
+                        severity,
                         rel,
                         f"Line {line_no} links outside the repository: {raw}",
                         line=line_no,
+                        **extra,
                     ))
                     continue
                 if not resolved.exists():
                     findings.append(_finding(
                         "markdown-link-broken",
-                        "error",
+                        severity,
                         rel,
                         f"Line {line_no} links to a missing local target: {raw}",
                         line=line_no,
+                        **extra,
                     ))
     return findings
 
@@ -603,7 +650,7 @@ def verify_repository(repo: str | os.PathLike[str] | Path, *, completion: bool =
             "A file may not belong to both current and historical tiers.",
         ))
 
-    findings.extend(_markdown_link_findings(root, exclude_patterns))
+    findings.extend(_markdown_link_findings(root, exclude_patterns, historical_patterns))
     findings.extend(_agent_note_findings(root, config))
     findings.extend(_budget_findings(root, config))
     findings.extend(_readiness_findings(root, config, completion))

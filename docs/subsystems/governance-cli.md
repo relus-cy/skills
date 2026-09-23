@@ -5,7 +5,7 @@ Owner paths: `dsh-doc-audits/scripts/repo_docs.py`, `dsh-doc-audits/scripts/work
 
 ## Boundary
 
-Run `python dsh-doc-audits/scripts/repo_docs.py <command> --repo <path>`. `doctor`, `inspect`, `plan`, `review-pack`, `verify`, `audit` and `impact` inspect the target; explicitly selected control outputs are the only writes in planning. `bootstrap` creates scaffolds. `apply` executes an exact prepared and reviewed document change. Python 3.11+ and Git are required, with no third-party runtime dependencies.
+Run `python dsh-doc-audits/scripts/repo_docs.py <command> --repo <path>`. `doctor`, `inspect`, `plan`, `review-pack`, `verify`, `audit` and `impact` inspect the target; explicitly selected control outputs are the only writes in planning. `bootstrap` creates scaffolds. `apply` executes an exact prepared and reviewed document change. Python 3.11+ and Git are required, with no third-party runtime dependencies. At a Git worktree root, `inspect`, `verify` and `audit` read the same file set as plan snapshots: tracked plus untracked non-ignored files. Other directories are walked in full.
 
 ## Plan and review
 
@@ -19,7 +19,7 @@ The write set is exact, documentation-only, with narrowly named verifier/CI exce
 
 ## Verification
 
-The verifier checks nested manifest types, owner existence, tier overlap, local Markdown paths, Note headings/status, budgets and unfinished current documents. Explicit scaffold status produces a normal warning and a completion error. Quoted history and fenced examples are excluded from authoring-prompt detection. These are bounded heuristics, not a proof of prose quality.
+The verifier checks nested manifest types, owner existence, tier overlap, local Markdown paths, Note headings/status, budgets and unfinished current documents. Explicit scaffold status produces a normal warning and a completion error. Quoted history and fenced examples are excluded from authoring-prompt detection. Link checks skip fenced code blocks and inline code spans. Broken links in `tiers.historical` are warnings, because migrations preserve those bodies. These are bounded heuristics, not a proof of prose quality.
 
 `audit` adds duplicate-prose and historical-authority warnings and still requires agent semantic review. `impact --base <ref> [--head <ref>]` uses committed three-dot Git differences and narrow owner mappings; a matching doc edit does not prove its accuracy. No PR no-impact waiver is parsed.
 

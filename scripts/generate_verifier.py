@@ -8,8 +8,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'dsh-doc-audits/scripts/repo_docs.py'
 FUNCTIONS = {
-    '_normalize_repo', '_relative_files', '_matches', '_finding', '_manifest_issues',
-    '_readiness_findings', '_load_governance', '_markdown_link_findings',
+    '_normalize_repo', '_git_worktree_files', '_relative_files', '_matches', '_finding', '_manifest_issues',
+    '_readiness_findings', '_load_governance', '_markdown_prose_lines', '_markdown_link_findings',
     '_agent_note_findings', '_budget_findings', 'verify_repository',
     '_current_markdown_files', 'audit_repository', 'impact_repository', '_emit',
 }

@@ -149,6 +149,29 @@ class TemplateTests(unittest.TestCase):
             self.assertIn("duplicate-prose", codes)
             self.assertIn("historical-authority-leak", codes)
 
+    def test_bootstrapped_local_verifier_skips_code_and_warns_on_historical_links(self) -> None:
+        repo_docs = load_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            repo_docs.bootstrap_repository(repo, profile="small-web-app")
+            historical = repo / "docs" / "superpowers" / "plans" / "old.md"
+            historical.parent.mkdir(parents=True, exist_ok=True)
+            historical.write_text(
+                "# Old plan\n\n```js\nbtn.classList[busy ? 'add' : 'remove']('spin');\n```\n\n"
+                "[removed](../../../src/removed.py)\n",
+                encoding="utf-8",
+            )
+
+            completed = subprocess.run(
+                ["python", str(repo / "scripts" / "verify_docs.py"), "--repo", str(repo), "--json"],
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr + completed.stdout)
+            links = [f for f in json.loads(completed.stdout)["findings"] if f["code"].startswith("markdown-link")]
+            self.assertEqual([(f["line"], f["severity"]) for f in links], [(7, "warning")])
+
     def test_references_have_no_deep_reference_chain(self) -> None:
         for path in sorted((SKILL / "references").glob("*.md")):
             text = path.read_text(encoding="utf-8")

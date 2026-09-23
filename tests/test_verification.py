@@ -164,6 +164,71 @@ class VerificationTests(unittest.TestCase):
             self.assertTrue(result["ok"], result["findings"])
             self.assertNotIn("markdown-link-broken", {f["code"] for f in result["findings"]})
 
+    def test_verify_ignores_link_syntax_inside_code(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            create_valid_repo(repo)
+            write(
+                repo / "docs" / "subsystems" / "ui.md",
+                "# UI\n\n"
+                "```js\nbtn.classList[busy ? 'add' : 'remove']('spin');\n```\n\n"
+                "1. In a list item:\n\n   ~~~python\n   history[Split](symbol)\n   ~~~\n\n"
+                "~~~~markdown\n```\n[inner fence](missing-inner.md)\n```\n~~~~\n\n"
+                "Inline `lookup[key](arg)` and ``a `[b](c)` d`` stay code.\n"
+                "An empty destination [like this]( ) is not a local link.\n",
+            )
+
+            result = self.repo_docs.verify_repository(repo)
+
+            self.assertTrue(result["ok"], result["findings"])
+            self.assertEqual([f for f in result["findings"] if f["code"].startswith("markdown-link")], [])
+
+    def test_verify_still_checks_links_around_code(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            create_valid_repo(repo)
+            write(
+                repo / "docs" / "subsystems" / "ui.md",
+                "# UI\n\n```\nhandlers[kind](event)\n```\n"
+                "See [`api`](missing-after-fence.md).\n"
+                "An unmatched ` leaves [this](missing-after-tick.md) checked.\n",
+            )
+
+            result = self.repo_docs.verify_repository(repo)
+            broken = {(f["line"], f["severity"]) for f in result["findings"] if f["code"] == "markdown-link-broken"}
+
+            self.assertEqual(broken, {(6, "error"), (7, "error")})
+
+    def test_verify_reports_historical_tier_links_as_warnings(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            create_valid_repo(repo)
+            write(
+                repo / "docs" / "superpowers" / "plans" / "old.md",
+                "# Old plan\n\n[removed](../../../src/removed.py) [outside](../../../../outside.md)\n",
+            )
+
+            for completion in (False, True):
+                with self.subTest(completion=completion):
+                    result = self.repo_docs.verify_repository(repo, completion=completion)
+                    links = {(f["code"], f["severity"], f.get("tier"))
+                             for f in result["findings"] if f["code"].startswith("markdown-link")}
+                    self.assertEqual(links, {("markdown-link-broken", "warning", "historical"),
+                                             ("markdown-link-outside", "warning", "historical")})
+            self.assertTrue(self.repo_docs.verify_repository(repo)["ok"])
+
+    def test_verify_skips_git_ignored_markdown(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            create_valid_repo(repo)
+            write(repo / ".gitignore", "tmp/\n")
+            write(repo / "tmp" / "copy" / "README.md", "# Scratch copy\n\n[missing](nowhere.md)\n")
+            subprocess.run(["git", "-C", str(repo), "init", "-b", "main"], check=True, capture_output=True)
+
+            result = self.repo_docs.verify_repository(repo)
+
+            self.assertTrue(result["ok"], result["findings"])
+
 
 class AuditTests(unittest.TestCase):
     def setUp(self) -> None:

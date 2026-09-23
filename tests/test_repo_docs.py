@@ -69,6 +69,23 @@ class RepositoryInspectionTests(unittest.TestCase):
             self.assertNotIn("web-api", result["stack_signals"])
             self.assertNotIn("web-ui", result["stack_signals"])
 
+    def test_inspect_uses_git_view_inside_a_repository(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            write(repo / ".gitignore", "tmp/\n")
+            write(repo / "README.md", "# Sample\n")
+            write(repo / "tmp" / "copy" / "app.py", "print('ignored')\n")
+            write(repo / "tmp" / "kept.md", "# Tracked despite the ignore rule\n")
+            self.assertEqual(self.repo_docs.inspect_repository(repo)["file_count"], 4)
+            subprocess.run(["git", "-C", str(repo), "init", "-b", "main"], check=True, capture_output=True)
+            subprocess.run(["git", "-C", str(repo), "add", "-f", "tmp/kept.md"], check=True, capture_output=True)
+
+            result = self.repo_docs.inspect_repository(repo)
+
+            self.assertEqual(result["file_count"], 3)
+            self.assertEqual(result["file_count"], len(self.repo_docs._workflow_guard().snapshot(repo)["files"]))
+            self.assertNotIn("python", result["stack_signals"])
+
     def test_build_plan_preserves_existing_docs_and_proposes_current_tiers(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)

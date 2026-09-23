@@ -69,6 +69,14 @@ Mappings are prompts to investigate, not proof that every changed file changes b
 
 These corpus checks are deterministic warnings. The global skill still performs broader evidence-based semantic review that a script cannot prove.
 
+## File scope and links
+
+At a Git worktree root, checks read the files Git lists: tracked files plus untracked files that are not ignored, as plan snapshots do. Other directories are walked in full. `exclude` narrows either set.
+
+Link checks skip fenced code blocks and inline code spans. A fence opens with three or more backticks or tildes, including one indented under a list item or blockquote; only the same character repeated at least as often closes it.
+
+A missing or outside-repository link target is an error, except in files matched by `tiers.historical`. First-pass migration preserves historical bodies (authority review, write boundary), so the workflow cannot repair such a link: it is reported as a warning with `tier: historical`, also under `--completion`. Add the path to `exclude` only when even the warning is unwanted; that removes it from every scan.
+
 ## Upgrade boundary
 
 Files copied from `assets/repo-governance/` are generated scaffolding only at creation. After the project fills them with facts, they become project-owned except for clearly generated code such as the verifier and workflow. Upgrades must plan file ownership before overwriting anything.
