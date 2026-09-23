@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "skills" / "dsh-doc-audits" / "scripts" / "repo_docs.py"
+MODULE_PATH = ROOT / "dsh-doc-audits" / "scripts" / "repo_docs.py"
 
 
 def load_module():
@@ -91,6 +91,21 @@ class VerificationTests(unittest.TestCase):
 
             self.assertTrue(result["ok"], result["findings"])
             self.assertEqual(result["findings"], [])
+
+    def test_verify_accepts_encoded_space_anchor_and_external_links(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="docs audit 中文 ") as tmp:
+            repo = Path(tmp)
+            create_valid_repo(repo)
+            write(repo / "docs" / "Some File.md", "# Heading\n")
+            write(
+                repo / "README.md",
+                "# Demo\n\n[local](#demo) [encoded](docs/Some%20File.md#heading) "
+                "[external](https://example.com/docs).\n",
+            )
+
+            result = self.repo_docs.verify_repository(repo)
+
+            self.assertTrue(result["ok"], result["findings"])
 
     def test_verify_reports_missing_authority_and_broken_relative_link(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

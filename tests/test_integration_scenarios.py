@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "skills" / "dsh-doc-audits"
+SKILL = ROOT / "dsh-doc-audits"
 MODULE_PATH = SKILL / "scripts" / "repo_docs.py"
 FIXTURES = ROOT / "tests" / "fixtures"
 

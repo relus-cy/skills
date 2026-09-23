@@ -40,7 +40,8 @@ Required top-level fields:
 - `agent_notes`: root and lifecycle/status mapping.
 - `budgets`: standing-document character ceilings.
 - `impact_mappings`: code patterns, owning docs, and `hard` or `soft` level.
-- `audit`: semantic audit thresholds and terms.
+- `audit`: corpus-audit thresholds and authority terms.
+- `exclude`: paths omitted from corpus scans, such as test fixtures, generated artifacts, and virtual environments.
 
 Optional metadata such as `skill_version`, `profile`, and `project` supports upgrades and reporting.
 
@@ -61,9 +62,11 @@ Mappings are prompts to investigate, not proof that every changed file changes b
 - relative Markdown links;
 - Agent Note lifecycle and headings;
 - document budgets;
-- diff-aware impact mappings.
+- diff-aware impact mappings;
+- duplicated long prose across current owners;
+- current documents that present historical tiers as current authority.
 
-The global skill adds broader corpus audit heuristics. The repository-local verifier remains deliberately deterministic and portable.
+These corpus checks are deterministic warnings. The global skill still performs broader evidence-based semantic review that a script cannot prove.
 
 ## Upgrade boundary
 

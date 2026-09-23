@@ -4,7 +4,7 @@
 
 **Goal:** Build and verify a portable `dsh-doc-audits` Agent Skill repository with a dependency-free governance CLI, templates, references, tests, and CI.
 
-**Architecture:** Keep the skill self-contained under `skills/dsh-doc-audits/`. A standard-library Python CLI performs deterministic repository inspection and validation; the Skill instructions handle semantic ownership decisions. Target repositories receive their own verifier and CI assets so governance survives without the global skill.
+**Architecture:** Keep the skill self-contained under `dsh-doc-audits/`. A standard-library Python CLI performs deterministic repository inspection and validation; the Skill instructions handle semantic ownership decisions. Target repositories receive their own verifier and CI assets so governance survives without the global skill.
 
 **Tech Stack:** Markdown, Python 3.11+ standard library, `unittest`, GitHub Actions, Git.
 
@@ -34,8 +34,8 @@
 
 **Files:**
 - Create: `README.md`, `LICENSE`, `THIRD_PARTY_NOTICES.md`, `AGENTS.md`, `CHANGELOG.md`
-- Create: `skills/dsh-doc-audits/SKILL.md`
-- Create: `skills/dsh-doc-audits/agents/openai.yaml`
+- Create: `dsh-doc-audits/SKILL.md`
+- Create: `dsh-doc-audits/agents/openai.yaml`
 - Test: `tests/test_skill_structure.py`
 
 **Interfaces:**
@@ -50,7 +50,7 @@
 ### Task 2: Governance CLI core
 
 **Files:**
-- Create: `skills/dsh-doc-audits/scripts/repo_docs.py`
+- Create: `dsh-doc-audits/scripts/repo_docs.py`
 - Test: `tests/test_repo_docs.py`
 
 **Interfaces:**
@@ -67,9 +67,9 @@
 ### Task 3: Templates and references
 
 **Files:**
-- Create: `skills/dsh-doc-audits/references/*.md`
-- Create: `skills/dsh-doc-audits/assets/repo-governance/**`
-- Modify: `skills/dsh-doc-audits/SKILL.md`
+- Create: `dsh-doc-audits/references/*.md`
+- Create: `dsh-doc-audits/assets/repo-governance/**`
+- Modify: `dsh-doc-audits/SKILL.md`
 - Test: `tests/test_templates.py`
 
 **Interfaces:**

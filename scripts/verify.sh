@@ -23,8 +23,8 @@ PY
 
 python -m unittest discover -s tests -v
 python scripts/verify_docs.py --repo . --json
-python skills/dsh-doc-audits/scripts/repo_docs.py verify --repo . --json
-python skills/dsh-doc-audits/scripts/repo_docs.py audit --repo . --json
+python dsh-doc-audits/scripts/repo_docs.py verify --repo . --json
+python dsh-doc-audits/scripts/repo_docs.py audit --repo . --json
 git diff --check
 
 echo "verify: PASS"

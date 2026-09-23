@@ -1,11 +1,11 @@
 # dsh-doc-audits skill contract
 
 Status: current authority
-Source owner: `skills/dsh-doc-audits/`
+Source owner: `dsh-doc-audits/`
 
 ## Skill identity
 
-- Directory: `skills/dsh-doc-audits/`
+- Directory: `dsh-doc-audits/`
 - Frontmatter name: `dsh-doc-audits`
 - Version: `0.1.0`
 - License: MIT

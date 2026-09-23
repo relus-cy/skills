@@ -1,6 +1,6 @@
 # skills
 
-Reusable Agent Skills maintained by `relus-cy`.
+Reusable Agent Skills maintained by `relus-cy`. Each Skill lives in a top-level directory so Skillshare and other recursive Agent Skills loaders can discover it directly.
 
 ## Included skill
 
@@ -10,14 +10,18 @@ A portable adaptation of the DeepSeek Harness documentation governance model. It
 
 The design keeps one current owner per durable fact and separates current behavior, decision rationale, historical process, and generated material. DeepSeek-specific bilingual, Cordis, VitePress, TypeScript, and pnpm mechanics are intentionally excluded.
 
+## Install
+
+Point Skillshare at this repository and select `dsh-doc-audits/`, or copy that directory into a compatible Agent Skills location such as `~/.agents/skills/dsh-doc-audits/`. The Skill is self-contained; target repositories receive their own verifier and CI assets.
+
 ## Run it
 
 From this repository:
 
 ```bash
-python skills/dsh-doc-audits/scripts/repo_docs.py inspect --repo /path/to/project
-python skills/dsh-doc-audits/scripts/repo_docs.py plan --repo /path/to/project --profile small-web-app
-python skills/dsh-doc-audits/scripts/repo_docs.py bootstrap --repo /path/to/project --profile small-web-app --dry-run
+python dsh-doc-audits/scripts/repo_docs.py inspect --repo /path/to/project
+python dsh-doc-audits/scripts/repo_docs.py plan --repo /path/to/project --profile small-web-app
+python dsh-doc-audits/scripts/repo_docs.py bootstrap --repo /path/to/project --profile small-web-app --dry-run
 ```
 
 The target repository receives its own `scripts/verify_docs.py` and CI workflow. Existing files are preserved unless `--force` is explicit.

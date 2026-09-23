@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "skills" / "dsh-doc-audits" / "scripts" / "repo_docs.py"
+MODULE_PATH = ROOT / "dsh-doc-audits" / "scripts" / "repo_docs.py"
 
 
 def load_module():
@@ -30,6 +30,15 @@ class RepositoryInspectionTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_docs = load_module()
 
+    def test_inspect_treats_gitkeep_only_repository_as_greenfield(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            write(repo / ".gitkeep", "")
+
+            result = self.repo_docs.inspect_repository(repo)
+
+            self.assertEqual(result["repository_state"], "greenfield")
+
     def test_inspect_detects_brownfield_python_web_repository(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
@@ -45,6 +54,20 @@ class RepositoryInspectionTests(unittest.TestCase):
             self.assertIn("python", result["stack_signals"])
             self.assertIn("web-api", result["stack_signals"])
             self.assertIn("docs/superpowers", result["historical_surfaces"])
+
+    def test_inspect_does_not_infer_web_stack_from_documentation_text(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            write(repo / "README.md", "# Notes\n\nThis document compares FastAPI, Flask, React, and Vue.\n")
+            write(repo / "docs" / "architecture.md", "# Architecture\n\nNo implementation exists yet.\n")
+            write(repo / "tests" / "test_stack.py", "# FastAPI React comparison fixture\n")
+            write(repo / "demo-skill" / "SKILL.md", "---\nname: demo-skill\ndescription: Use when testing.\n---\n")
+            write(repo / "demo-skill" / "scripts" / "scan.py", "TOKENS = ('FastAPI', 'React')\n")
+
+            result = self.repo_docs.inspect_repository(repo)
+
+            self.assertNotIn("web-api", result["stack_signals"])
+            self.assertNotIn("web-ui", result["stack_signals"])
 
     def test_build_plan_preserves_existing_docs_and_proposes_current_tiers(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

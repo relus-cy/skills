@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "skill_version": "0.1.0",
-  "profile": "small-web-app",
+  "profile": "skill-repository",
   "project": "skills",
   "authority": {
     "project_entry": "README.md",
@@ -70,8 +70,8 @@
     {
       "name": "skill-interface",
       "code": [
-        "skills/**/SKILL.md",
-        "skills/**/agents/**"
+        "*/SKILL.md",
+        "*/agents/**"
       ],
       "docs": [
         "README.md",
@@ -82,8 +82,8 @@
     {
       "name": "governance-cli-and-assets",
       "code": [
-        "skills/dsh-doc-audits/scripts/**",
-        "skills/dsh-doc-audits/assets/**"
+        "dsh-doc-audits/scripts/**",
+        "dsh-doc-audits/assets/**"
       ],
       "docs": [
         "docs/subsystems/governance-cli.md",
@@ -94,7 +94,7 @@
     {
       "name": "governance-method",
       "code": [
-        "skills/dsh-doc-audits/references/**"
+        "dsh-doc-audits/references/**"
       ],
       "docs": [
         "docs/architecture.md",

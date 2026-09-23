@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "skills" / "dsh-doc-audits"
+SKILL = ROOT / "dsh-doc-audits"
 
 
 class SkillStructureTests(unittest.TestCase):
@@ -42,6 +42,17 @@ class SkillStructureTests(unittest.TestCase):
         text = metadata.read_text(encoding="utf-8")
         self.assertIn('display_name: "DSH Doc Audits"', text)
         self.assertIn("$dsh-doc-audits", text)
+
+    def test_version_is_consistent_across_release_surfaces(self) -> None:
+        skill = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+        pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        governance = (ROOT / "docs" / "governance.yaml").read_text(encoding="utf-8")
+
+        self.assertRegex(skill, r'(?m)^  version: "0\.1\.0"$')
+        self.assertRegex(pyproject, r'(?m)^version = "0\.1\.0"$')
+        self.assertIn("## 0.1.0", changelog)
+        self.assertIn('"skill_version": "0.1.0"', governance)
 
     def test_repository_has_license_and_attribution(self) -> None:
         self.assertTrue((ROOT / "LICENSE").is_file())

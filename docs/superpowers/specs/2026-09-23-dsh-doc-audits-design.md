@@ -29,7 +29,7 @@ The skill must leave every target repository self-governing: project facts and r
 
 ## Skill layout
 
-The repository is multi-skill ready. The initial skill lives at `skills/dsh-doc-audits/` and contains:
+The repository is multi-skill ready. The initial skill lives at `dsh-doc-audits/` and contains:
 
 - `SKILL.md`: concise activation and workflow entry point.
 - `references/`: governance model, mode rules, audit rubric, repository contract, Agent Note lifecycle, and profile guidance.

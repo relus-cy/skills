@@ -58,9 +58,17 @@ def load_manifest(root: Path):
     if not path.is_file():
         return None, [finding("governance-missing", "error", "docs/governance.yaml", "Governance manifest is missing.")]
     try:
-        return json.loads(path.read_text(encoding="utf-8")), []
+        data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         return None, [finding("governance-invalid", "error", "docs/governance.yaml", str(exc))]
+    if not isinstance(data, dict):
+        return None, [finding(
+            "governance-invalid",
+            "error",
+            "docs/governance.yaml",
+            "Governance manifest root must be an object.",
+        )]
+    return data, []
 
 
 def link_findings(root: Path, exclude_patterns=()):
@@ -91,6 +99,59 @@ def link_findings(root: Path, exclude_patterns=()):
                     continue
                 if not resolved.exists():
                     result.append(finding("markdown-link-broken", "error", rel, f"Line {line_no}: {raw}"))
+    return result
+
+
+def current_markdown_files(root: Path, config, exclude_patterns=()):
+    current = config.get("tiers", {}).get("current", [])
+    return [
+        root / rel
+        for rel in files(root, exclude_patterns)
+        if rel.endswith(".md") and any(matches(rel, pattern) for pattern in current)
+    ]
+
+
+def audit_findings(root: Path, config, exclude_patterns=()):
+    result = []
+    audit = config.get("audit", {})
+    minimum = int(audit.get("duplicate_min_chars", 180))
+    occurrences = {}
+    current_files = current_markdown_files(root, config, exclude_patterns)
+    for path in current_files:
+        rel = path.relative_to(root).as_posix()
+        text = path.read_text(encoding="utf-8")
+        for paragraph in re.split(r"\n\s*\n", text):
+            normalized = " ".join(paragraph.split())
+            if len(normalized) < minimum or normalized.startswith("#") or normalized.startswith("```"):
+                continue
+            occurrences.setdefault(normalized, []).append(rel)
+    for paragraph, paths in sorted(occurrences.items()):
+        unique_paths = sorted(set(paths))
+        if len(unique_paths) > 1:
+            result.append(finding(
+                "duplicate-prose",
+                "warning",
+                unique_paths[0],
+                "A long prose block is duplicated across current documentation owners.",
+                paths=unique_paths,
+                excerpt=paragraph[:160],
+            ))
+
+    historical = config.get("tiers", {}).get("historical", [])
+    prefixes = sorted({pattern[:-3].rstrip("/") if pattern.endswith("/**") else pattern for pattern in historical})
+    terms = [str(term).lower() for term in audit.get("historical_authority_terms", [])]
+    for path in current_files:
+        rel = path.relative_to(root).as_posix()
+        for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            lowered = line.lower()
+            if terms and any(term in lowered for term in terms) and any(prefix in line for prefix in prefixes):
+                result.append(finding(
+                    "historical-authority-leak",
+                    "warning",
+                    rel,
+                    f"Line {line_no} names a historical tier as current authority.",
+                    line=line_no,
+                ))
     return result
 
 
@@ -149,6 +210,7 @@ def verify(root: Path, base: str | None = None):
             result.append(finding("tier-overlap", "error", rel, "File is both current and historical."))
     result.extend(link_findings(root, exclude_patterns))
     result.extend(note_findings(root, config))
+    result.extend(audit_findings(root, config, exclude_patterns))
     for rel, rule in config.get("budgets", {}).items():
         path = root / rel
         if path.is_file() and rule.get("metric") == "unicode_chars":

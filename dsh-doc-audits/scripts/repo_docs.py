@@ -89,10 +89,19 @@ def _relative_files(repo: Path, exclude_patterns: Iterable[str] = ()) -> list[st
 
 
 def _contains_token(repo: Path, paths: Iterable[str], tokens: Iterable[str]) -> bool:
+    path_list = list(paths)
     token_tuple = tuple(tokens)
-    for rel in paths:
+    skill_roots = {
+        Path(rel).parts[0]
+        for rel in path_list
+        if Path(rel).name == "SKILL.md" and len(Path(rel).parts) > 1
+    }
+    for rel in path_list:
+        parts = Path(rel).parts
+        if parts and (parts[0] in {"docs", "tests", "test", ".agents", ".github"} or parts[0] in skill_roots):
+            continue
         path = repo / rel
-        if path.suffix.lower() not in {".py", ".js", ".ts", ".tsx", ".jsx", ".md", ".txt"}:
+        if path.suffix.lower() not in {".py", ".js", ".ts", ".tsx", ".jsx"}:
             continue
         try:
             text = path.read_text(encoding="utf-8", errors="ignore")[:200_000]
@@ -106,7 +115,11 @@ def _contains_token(repo: Path, paths: Iterable[str], tokens: Iterable[str]) -> 
 def inspect_repository(repo: str | os.PathLike[str] | Path) -> dict[str, Any]:
     root = _normalize_repo(repo)
     files = _relative_files(root)
-    meaningful = [p for p in files if not p.startswith(".git/")]
+    meaningful = [
+        p
+        for p in files
+        if Path(p).name not in {".gitkeep", ".DS_Store"}
+    ]
 
     signals: list[str] = []
     if any(

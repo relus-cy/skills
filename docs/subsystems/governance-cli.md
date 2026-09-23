@@ -1,7 +1,7 @@
 # Governance CLI
 
 Status: current authority
-Owner paths: `skills/dsh-doc-audits/scripts/repo_docs.py`, `skills/dsh-doc-audits/assets/repo-governance/scripts/verify_docs.py`
+Owner paths: `dsh-doc-audits/scripts/repo_docs.py`, `dsh-doc-audits/assets/repo-governance/scripts/verify_docs.py`
 
 ## Purpose
 
@@ -12,7 +12,7 @@ The CLI turns the semantic governance model into safe, repeatable repository ope
 Run the bundled CLI with Python:
 
 ```bash
-python skills/dsh-doc-audits/scripts/repo_docs.py <command> --repo <path>
+python dsh-doc-audits/scripts/repo_docs.py <command> --repo <path>
 ```
 
 Commands are `inspect`, `plan`, `bootstrap`, `verify`, `audit`, and `impact`. `--json` returns stable machine-readable results. `bootstrap` supports `--dry-run` and `--force`; `impact` requires `--base` and accepts `--head`.
@@ -27,7 +27,7 @@ Commands are `inspect`, `plan`, `bootstrap`, `verify`, `audit`, and `impact`. `-
 
 ## Verification semantics
 
-`verify` checks governance manifest parsing, authority paths, current/historical overlap, relative Markdown links, Agent Note lifecycle and headings, and Unicode-character budgets.
+`verify` checks governance manifest parsing, authority paths, current/historical overlap, relative Markdown links, Agent Note lifecycle and headings, and Unicode-character budgets. The generated repository-local verifier runs the same core checks and also reports duplicate-prose and historical-authority warnings in one pass.
 
 `impact` reads `impact_mappings` from `docs/governance.yaml`. A changed hard-mapped code path with no changed owner document is an error; a soft mapping is a warning.
 
