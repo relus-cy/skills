@@ -1,3 +1,70 @@
 # Repository Contract
 
-A governed repository declares authority, tiers, impact mappings, budgets, and Agent Note rules in `docs/governance.yaml`, with a repository-local verifier and CI workflow.
+## Generated structure
+
+The default scaffold is:
+
+```text
+README.md
+AGENTS.md
+docs/
+  AGENTS.md
+  architecture.md
+  backlog.md
+  governance.yaml
+  subsystems/
+  runbooks/
+  reference/
+.agents/notes/
+  README.md
+  proposed/
+  implemented/
+  rejected/
+  archived/
+scripts/verify_docs.py
+.github/workflows/docs-governance.yml
+```
+
+Projects may omit optional tiers when their scope does not need them. Existing project-owned entry pages are preserved during brownfield bootstrap.
+
+## `docs/governance.yaml`
+
+The bundled manifest uses JSON syntax in a `.yaml` file. JSON is valid YAML and lets the generated verifier stay dependency-free.
+
+Required top-level fields:
+
+- `schema_version`: integer contract version.
+- `authority`: named current-owner paths.
+- `tiers.current`: glob patterns for current human-facing docs.
+- `tiers.historical`: glob patterns for historical material.
+- `agent_notes`: root and lifecycle/status mapping.
+- `budgets`: standing-document character ceilings.
+- `impact_mappings`: code patterns, owning docs, and `hard` or `soft` level.
+- `audit`: semantic audit thresholds and terms.
+
+Optional metadata such as `skill_version`, `profile`, and `project` supports upgrades and reporting.
+
+## Hard and soft mappings
+
+A hard mapping covers contracts where stale docs create meaningful operational or integration risk: public APIs, configuration, deployment, recovery, migrations, storage formats, security controls, or published workflows. A branch that changes mapped code must also change at least one owner or carry a separately reviewed no-impact record outside the generated verifier.
+
+A soft mapping marks areas that require judgment, such as internal modules and non-observable refactors. The verifier warns but does not block.
+
+Mappings are prompts to investigate, not proof that every changed file changes behavior. Keep them narrow enough to avoid ritual edits.
+
+## Generated verifier
+
+`scripts/verify_docs.py` uses only Python's standard library and checks:
+
+- authority paths;
+- tier overlap;
+- relative Markdown links;
+- Agent Note lifecycle and headings;
+- document budgets;
+- diff-aware impact mappings.
+
+The global skill adds broader corpus audit heuristics. The repository-local verifier remains deliberately deterministic and portable.
+
+## Upgrade boundary
+
+Files copied from `assets/repo-governance/` are generated scaffolding only at creation. After the project fills them with facts, they become project-owned except for clearly generated code such as the verifier and workflow. Upgrades must plan file ownership before overwriting anything.

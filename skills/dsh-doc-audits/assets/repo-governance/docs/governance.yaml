@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "skill_version": "{{SKILL_VERSION}}",
+  "profile": "{{PROFILE}}",
+  "project": "{{PROJECT_NAME}}",
+  "authority": {
+    "project_entry": "README.md",
+    "agent_instructions": "AGENTS.md",
+    "documentation_standard": "docs/AGENTS.md",
+    "architecture": "docs/architecture.md",
+    "backlog": "docs/backlog.md",
+    "agent_notes": ".agents/notes/README.md"
+  },
+  "tiers": {
+    "current": [
+      "README.md",
+      "AGENTS.md",
+      "CONTEXT.md",
+      "docs/AGENTS.md",
+      "docs/architecture.md",
+      "docs/backlog.md",
+      "docs/subsystems/**",
+      "docs/runbooks/**",
+      "docs/reference/**"
+    ],
+    "historical": [
+      "docs/superpowers/**",
+      "docs/releases/**",
+      "docs/postmortems/**",
+      "docs/postmortem/**",
+      ".agents/notes/archived/**"
+    ]
+  },
+  "agent_notes": {
+    "root": ".agents/notes",
+    "statuses": {
+      "proposed": "proposed",
+      "implemented": "implemented",
+      "rejected": "rejected",
+      "archived": "implemented"
+    }
+  },
+  "budgets": {
+    "AGENTS.md": {"metric": "unicode_chars", "max": 5000},
+    "README.md": {"metric": "unicode_chars", "max": 10000},
+    "docs/AGENTS.md": {"metric": "unicode_chars", "max": 7000},
+    "docs/architecture.md": {"metric": "unicode_chars", "max": 8000}
+  },
+  "impact_mappings": [
+    {
+      "name": "public-api-contracts",
+      "code": ["api/**", "openapi.*", "schema/**", "schemas/**"],
+      "docs": ["docs/subsystems/**", "docs/reference/**"],
+      "level": "hard"
+    },
+    {
+      "name": "configuration-contracts",
+      "code": [".env.example", "config/**", "settings/**"],
+      "docs": ["docs/reference/**", "docs/runbooks/**"],
+      "level": "hard"
+    },
+    {
+      "name": "operations",
+      "code": [".github/workflows/**", "Dockerfile*", "docker-compose*", "infra/**", "scripts/deploy*", "scripts/recover*"],
+      "docs": ["docs/runbooks/**"],
+      "level": "hard"
+    },
+    {
+      "name": "architecture-and-internal-modules",
+      "code": ["src/**", "app/**", "engine/**", "packages/**"],
+      "docs": ["docs/architecture.md", "docs/subsystems/**"],
+      "level": "soft"
+    }
+  ],
+  "audit": {
+    "duplicate_min_chars": 180,
+    "historical_authority_terms": ["current authority", "source of truth", "唯一权威", "权威文档"]
+  }
+}

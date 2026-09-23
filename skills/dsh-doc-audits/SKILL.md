@@ -23,7 +23,7 @@ Build and maintain an agent-readable documentation control plane around one rule
 - **audit** — compare docs with code, tests, commands, and governance rules; stay read-only unless repair is explicitly requested.
 - **upgrade** — refresh generated governance assets while preserving project-owned content.
 
-Read [workflow.md](references/workflow.md) for the selected mode before changing files.
+Read [workflow.md](references/workflow.md) for the selected mode before changing files. For existing repositories, also read [migration.md](references/migration.md).
 
 ## Standing rules
 
@@ -53,7 +53,7 @@ python scripts/repo_docs.py impact --repo <path> --base <ref>
 
 Use `--json` for machine-readable output and `--dry-run` before writes. Existing files are preserved unless `--force` is explicit.
 
-Read [repository-contract.md](references/repository-contract.md) before installing governance assets and [audit-rubric.md](references/audit-rubric.md) before claiming a corpus is current.
+Read [repository-contract.md](references/repository-contract.md) before installing governance assets, [profile-small-web-app.md](references/profile-small-web-app.md) when that profile fits, and [audit-rubric.md](references/audit-rubric.md) before claiming a corpus is current. [lineage.md](references/lineage.md) records what was retained from and removed from DSH.
 
 ## Completion contract
 

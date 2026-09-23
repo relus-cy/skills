@@ -26,6 +26,8 @@ SKILL_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TEMPLATE_ROOT = SKILL_ROOT / "assets" / "repo-governance"
 
 TARGET_FILES = (
+    "README.md",
+    "AGENTS.md",
     "docs/AGENTS.md",
     "docs/architecture.md",
     "docs/backlog.md",
