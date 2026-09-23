@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "authority": {
+    "architecture": "docs/architecture.md",
+    "backlog": "docs/backlog.md"
+  },
+  "tiers": {
+    "current": ["README.md", "AGENTS.md", "docs/architecture.md", "docs/backlog.md", "docs/subsystems/**", "docs/reference/**"],
+    "historical": ["docs/superpowers/**", ".agents/notes/archived/**"]
+  },
+  "agent_notes": {
+    "root": ".agents/notes",
+    "statuses": {"proposed": "proposed", "implemented": "implemented", "rejected": "rejected", "archived": "implemented"}
+  },
+  "budgets": {},
+  "impact_mappings": [
+    {"name": "api", "code": ["api/**"], "docs": ["docs/subsystems/api.md", "docs/reference/api.md"], "level": "hard"}
+  ],
+  "audit": {"duplicate_min_chars": 180, "historical_authority_terms": ["current authority"]}
+}

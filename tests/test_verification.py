@@ -135,6 +135,20 @@ class VerificationTests(unittest.TestCase):
 
             self.assertIn("document-budget-exceeded", {f["code"] for f in result["findings"]})
 
+    def test_verify_ignores_markdown_under_manifest_exclusions(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            create_valid_repo(repo)
+            data = manifest()
+            data["exclude"] = ["tests/fixtures/**"]
+            write(repo / "docs" / "governance.yaml", json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+            write(repo / "tests" / "fixtures" / "drifted" / "README.md", "# Drifted\n\n[missing](docs/missing.md)\n")
+
+            result = self.repo_docs.verify_repository(repo)
+
+            self.assertTrue(result["ok"], result["findings"])
+            self.assertNotIn("markdown-link-broken", {f["code"] for f in result["findings"]})
+
 
 class AuditTests(unittest.TestCase):
     def setUp(self) -> None:

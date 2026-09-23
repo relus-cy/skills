@@ -44,6 +44,14 @@ TARGET_FILES = (
     ".github/workflows/docs-governance.yml",
 )
 
+DEFAULT_EXCLUDE_PATTERNS = (
+    ".git/**",
+    ".venv/**",
+    "node_modules/**",
+    "**/__pycache__/**",
+)
+
+
 KNOWN_HISTORICAL_SURFACES = (
     "docs/superpowers",
     "docs/releases",
@@ -64,18 +72,19 @@ def _normalize_repo(repo: str | os.PathLike[str] | Path) -> Path:
     return path
 
 
-def _relative_files(repo: Path) -> list[str]:
+def _relative_files(repo: Path, exclude_patterns: Iterable[str] = ()) -> list[str]:
+    patterns = (*DEFAULT_EXCLUDE_PATTERNS, *(str(pattern) for pattern in exclude_patterns))
     files: list[str] = []
     for path in repo.rglob("*"):
         if not path.is_file():
             continue
         try:
-            rel = path.relative_to(repo)
+            rel = path.relative_to(repo).as_posix()
         except ValueError:
             continue
-        if rel.parts and rel.parts[0] in {".git", ".venv", "node_modules", "__pycache__"}:
+        if any(_matches(rel, pattern) for pattern in patterns):
             continue
-        files.append(rel.as_posix())
+        files.append(rel)
     return sorted(files)
 
 
@@ -283,11 +292,14 @@ def _load_governance(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, 
     return data, []
 
 
-def _markdown_link_findings(root: Path) -> list[dict[str, Any]]:
+def _markdown_link_findings(
+    root: Path,
+    exclude_patterns: Iterable[str] = (),
+) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     link_re = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
     scheme_re = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
-    for rel in _relative_files(root):
+    for rel in _relative_files(root, exclude_patterns):
         if not rel.endswith(".md"):
             continue
         path = root / rel
@@ -441,7 +453,8 @@ def verify_repository(repo: str | os.PathLike[str] | Path) -> dict[str, Any]:
                 authority=name,
             ))
 
-    files = _relative_files(root)
+    exclude_patterns = list(config.get("exclude") or [])
+    files = _relative_files(root, exclude_patterns)
     current_patterns = list((config.get("tiers") or {}).get("current") or [])
     historical_patterns = list((config.get("tiers") or {}).get("historical") or [])
     overlap = sorted(
@@ -458,7 +471,7 @@ def verify_repository(repo: str | os.PathLike[str] | Path) -> dict[str, Any]:
             "A file may not belong to both current and historical tiers.",
         ))
 
-    findings.extend(_markdown_link_findings(root))
+    findings.extend(_markdown_link_findings(root, exclude_patterns))
     findings.extend(_agent_note_findings(root, config))
     findings.extend(_budget_findings(root, config))
     findings.sort(key=lambda item: (item["severity"], item["code"], item["path"], item["message"]))
@@ -469,9 +482,10 @@ def verify_repository(repo: str | os.PathLike[str] | Path) -> dict[str, Any]:
 
 def _current_markdown_files(root: Path, config: dict[str, Any]) -> list[Path]:
     patterns = list((config.get("tiers") or {}).get("current") or [])
+    exclude_patterns = list(config.get("exclude") or [])
     return [
         root / rel
-        for rel in _relative_files(root)
+        for rel in _relative_files(root, exclude_patterns)
         if rel.endswith(".md") and any(_matches(rel, pattern) for pattern in patterns)
     ]
 

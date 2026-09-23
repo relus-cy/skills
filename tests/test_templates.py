@@ -80,6 +80,25 @@ class TemplateTests(unittest.TestCase):
             payload = json.loads(completed.stdout)
             self.assertTrue(payload["ok"], payload)
 
+    def test_bootstrapped_local_verifier_honors_manifest_exclusions(self) -> None:
+        repo_docs = load_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            repo_docs.bootstrap_repository(repo, profile="small-web-app")
+            fixture = repo / "tests" / "fixtures" / "drifted" / "README.md"
+            fixture.parent.mkdir(parents=True, exist_ok=True)
+            fixture.write_text("# Drifted\n\n[missing](docs/missing.md)\n", encoding="utf-8")
+
+            completed = subprocess.run(
+                ["python", str(repo / "scripts" / "verify_docs.py"), "--repo", str(repo), "--json"],
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr + completed.stdout)
+            payload = json.loads(completed.stdout)
+            self.assertTrue(payload["ok"], payload)
+
     def test_references_have_no_deep_reference_chain(self) -> None:
         for path in sorted((SKILL / "references").glob("*.md")):
             text = path.read_text(encoding="utf-8")

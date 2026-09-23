@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "skill_version": "{{SKILL_VERSION}}",
-  "profile": "{{PROFILE}}",
-  "project": "{{PROJECT_NAME}}",
+  "skill_version": "0.1.0",
+  "profile": "small-web-app",
+  "project": "skills",
   "authority": {
     "project_entry": "README.md",
     "agent_instructions": "AGENTS.md",
@@ -68,60 +68,52 @@
   },
   "impact_mappings": [
     {
-      "name": "public-api-contracts",
+      "name": "skill-interface",
       "code": [
-        "api/**",
-        "openapi.*",
-        "schema/**",
-        "schemas/**"
+        "skills/**/SKILL.md",
+        "skills/**/agents/**"
       ],
       "docs": [
-        "docs/subsystems/**",
-        "docs/reference/**"
+        "README.md",
+        "docs/reference/skill-contract.md"
       ],
       "level": "hard"
     },
     {
-      "name": "configuration-contracts",
+      "name": "governance-cli-and-assets",
       "code": [
-        ".env.example",
-        "config/**",
-        "settings/**"
+        "skills/dsh-doc-audits/scripts/**",
+        "skills/dsh-doc-audits/assets/**"
       ],
       "docs": [
-        "docs/reference/**",
-        "docs/runbooks/**"
+        "docs/subsystems/governance-cli.md",
+        "docs/reference/skill-contract.md"
       ],
       "level": "hard"
     },
     {
-      "name": "operations",
+      "name": "governance-method",
       "code": [
-        ".github/workflows/**",
-        "Dockerfile*",
-        "docker-compose*",
-        "infra/**",
-        "scripts/deploy*",
-        "scripts/recover*"
-      ],
-      "docs": [
-        "docs/runbooks/**"
-      ],
-      "level": "hard"
-    },
-    {
-      "name": "architecture-and-internal-modules",
-      "code": [
-        "src/**",
-        "app/**",
-        "engine/**",
-        "packages/**"
+        "skills/dsh-doc-audits/references/**"
       ],
       "docs": [
         "docs/architecture.md",
-        "docs/subsystems/**"
+        "docs/AGENTS.md"
       ],
       "level": "soft"
+    },
+    {
+      "name": "release-and-ci",
+      "code": [
+        ".github/workflows/**",
+        "scripts/verify.sh",
+        "pyproject.toml",
+        "Makefile"
+      ],
+      "docs": [
+        "docs/runbooks/release.md"
+      ],
+      "level": "hard"
     }
   ],
   "audit": {
