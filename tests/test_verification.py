@@ -34,7 +34,7 @@ def manifest(**overrides):
             "backlog": "docs/backlog.md",
         },
         "tiers": {
-            "current": ["README.md", "AGENTS.md", "docs/architecture.md", "docs/backlog.md", "docs/subsystems/**"],
+            "current": ["README.md", "AGENTS.md", "docs/architecture.md", "docs/backlog.md", "docs/subsystems/**", "docs/reference/**"],
             "historical": ["docs/superpowers/**", ".agents/notes/archived/**"],
         },
         "agent_notes": {
@@ -91,6 +91,56 @@ class VerificationTests(unittest.TestCase):
 
             self.assertTrue(result["ok"], result["findings"])
             self.assertEqual(result["findings"], [])
+
+    def test_verify_accepts_agent_notes_opt_out(self) -> None:
+        # A repository whose policy forbids decision records keeps the manifest block but no notes or authority entry.
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            create_valid_repo(repo)
+            (repo / ".agents" / "notes" / "README.md").unlink()
+            (repo / ".agents" / "notes").rmdir(); (repo / ".agents").rmdir()
+            self.assertNotIn("agent_notes", manifest()["authority"])
+
+            result = self.repo_docs.verify_repository(repo)
+
+            self.assertTrue(result["ok"], result["findings"])
+            self.assertEqual(result["findings"], [])
+
+    def test_agent_notes_opt_out_with_markdown_rationale_home(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            create_valid_repo(repo)
+            (repo / ".agents" / "notes" / "README.md").unlink()
+            (repo / ".agents" / "notes").rmdir(); (repo / ".agents").rmdir()
+            value = manifest()
+            value["tiers"]["current"].append("docs/decisions/**")
+            write(repo / "docs" / "governance.yaml", json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+            write(repo / "docs" / "decisions" / "example.md", "# Example decision\n\nWhy the service caches reads.\n")
+
+            result = self.repo_docs.verify_repository(repo)
+
+            self.assertTrue(result["ok"], result["findings"])
+
+    def test_cli_verify_and_audit_state_structure_only_assurance(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            create_valid_repo(repo)
+            for command in ("verify", "audit"):
+                completed = subprocess.run(["python", str(MODULE_PATH), command, "--repo", str(repo), "--json"],
+                                           text=True, capture_output=True)
+                self.assertEqual(completed.returncode, 0, completed.stderr + completed.stdout)
+                self.assertTrue(json.loads(completed.stdout)["assurance"].startswith("structure-only"))
+
+    def test_verify_warns_on_untiered_document(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            create_valid_repo(repo)
+            write(repo / "docs" / "deploy.md", "# Deploy\n")
+
+            result = self.repo_docs.verify_repository(repo)
+
+            self.assertTrue(result["ok"])
+            self.assertEqual([(f["code"], f["path"]) for f in result["findings"]], [("documentation-untiered", "docs/deploy.md")])
 
     def test_verify_accepts_encoded_space_anchor_and_external_links(self) -> None:
         with tempfile.TemporaryDirectory(prefix="docs audit 中文 ") as tmp:
@@ -293,6 +343,28 @@ class ImpactTests(unittest.TestCase):
 
             self.assertFalse(result["ok"])
             self.assertIn("hard-doc-impact-missing", {f["code"] for f in result["findings"]})
+
+    def test_mapping_without_any_owner_asks_for_one_instead_of_blocking(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            create_valid_repo(repo)
+            (repo / "docs" / "subsystems" / "api.md").unlink()
+            (repo / "docs" / "reference" / "api.md").unlink()
+            self._git(repo, "init", "-b", "main")
+            self._git(repo, "config", "user.name", "Test")
+            self._git(repo, "config", "user.email", "test@example.com")
+            write(repo / "api" / "main.py", "VALUE = 1\n")
+            self._git(repo, "add", ".")
+            self._git(repo, "commit", "-m", "base")
+            base = self._git(repo, "rev-parse", "HEAD")
+            write(repo / "api" / "main.py", "VALUE = 2\n")
+            self._git(repo, "add", ".")
+            self._git(repo, "commit", "-m", "change code")
+
+            result = self.repo_docs.impact_repository(repo, base=base)
+
+            self.assertTrue(result["ok"], result["findings"])
+            self.assertEqual([f["code"] for f in result["findings"]], ["doc-owner-missing"])
 
     def test_hard_mapping_passes_when_owner_doc_changes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -79,7 +79,7 @@ class WorkflowTests(unittest.TestCase):
         return self.g.prepare_plan(self.root, proposal=self.proposal)
 
     def review(self, plan, **changes):
-        value = {'schema_version': 1, 'plan_digest': plan['plan_digest'], 'verdict': 'approve',
+        value = {'schema_version': 2, 'content_digest': plan['content_digest'], 'verdict': 'approve',
                  'reviewer': {'kind': 'human', 'identity': 'synthetic-test-reviewer', 'context_id': 'fixture-review'},
                  'missing_domains': [], 'over_split_owners': [], 'under_split_owners': [],
                  'authority_conflicts': [], 'required_changes': [],
@@ -208,6 +208,184 @@ class WorkflowTests(unittest.TestCase):
         write(self.root / 'new.txt', 'concurrent work')
         with self.assertRaises(ValueError): self.apply(plan)
 
+    def test_unrelated_commit_keeps_plan_valid(self):
+        plan = self.plan()
+        # A force-tracked probe report moves HEAD and adds a file the plan never reads.
+        write(self.root / 'tmp/probe-report.md', '# Probe\n')
+        write(self.root / '.gitignore', 'tmp/\n')
+        git(self.root, 'add', '.gitignore'); git(self.root, 'add', '-f', 'tmp/probe-report.md')
+        git(self.root, 'commit', '-m', 'probe report')
+        self.assertEqual(self.g.review_package(self.root, plan)['plan_digest'], plan['plan_digest'])
+        self.assertEqual(self.apply(plan)['status'], 'applied')
+
+    def test_plan_binds_only_paths_it_reads_or_writes(self):
+        plan = self.plan()
+        self.assertEqual(sorted(plan['repository_snapshot']['files']),
+                         ['README.md', 'api/main.py', 'docs/governance.yaml', 'docs/old.md', 'docs/subsystems/service.md'])
+        self.assertIsNone(plan['repository_snapshot']['files']['docs/subsystems/service.md'])
+
+    def test_create_target_appearing_after_planning_invalidates_plan(self):
+        plan = self.plan()
+        write(self.root / 'docs/subsystems/service.md', '# Concurrent\n')
+        git(self.root, 'add', '.'); git(self.root, 'commit', '-m', 'concurrent owner')
+        with self.assertRaises(ValueError): self.apply(plan)
+        self.assertEqual((self.root / 'docs/subsystems/service.md').read_text(), '# Concurrent\n')
+
+    def test_new_file_under_preserved_directory_invalidates_plan(self):
+        write(self.root / 'docs/history/one.md', '# One\n')
+        git(self.root, 'add', '.'); git(self.root, 'commit', '-m', 'history')
+        self.proposal['files']['preserve'].append('docs/history')
+        plan = self.plan()
+        write(self.root / 'docs/history/two.md', '# Two\n')
+        git(self.root, 'add', '.'); git(self.root, 'commit', '-m', 'more history')
+        with self.assertRaises(ValueError): self.apply(plan)
+
+    def test_manifest_change_invalidates_plan(self):
+        plan = self.plan()
+        write(self.root / 'docs/governance.yaml', json.dumps({'tiers': {'current': ['README.md'], 'historical': ['docs/**']}}))
+        git(self.root, 'add', '.'); git(self.root, 'commit', '-m', 'manifest')
+        with self.assertRaises(ValueError): self.apply(plan)
+
+    def test_replan_in_new_worktree_reuses_review_of_unchanged_proposal(self):
+        plan = self.plan()
+        review = self.review(plan)
+        worktree = Path(self.tmp.name) / 'fresh-worktree'
+        git(self.root, 'worktree', 'add', '-b', 'docs-fresh', str(worktree))
+        with self.assertRaisesRegex(ValueError, 'another checkout'):
+            self.g.apply_plan(worktree, plan, review, dry_run=True)
+        replanned = self.g.prepare_plan(worktree, proposal=self.proposal)
+        self.assertNotEqual(replanned['plan_digest'], plan['plan_digest'])
+        self.assertEqual(replanned['content_digest'], plan['content_digest'])
+        self.assertEqual(self.g.apply_plan(worktree, replanned, review)['status'], 'applied')
+
+    def test_changed_evidence_requires_new_review_after_replan(self):
+        plan = self.plan()
+        review = self.review(plan)
+        write(self.root / 'api/main.py', 'VALUE = 2\n')
+        git(self.root, 'add', '.'); git(self.root, 'commit', '-m', 'evidence changed')
+        replanned = self.plan()
+        self.assertNotEqual(replanned['content_digest'], plan['content_digest'])
+        with self.assertRaisesRegex(ValueError, 'other plan content'): self.apply(replanned, review)
+
+    def test_tampered_content_digest_is_rejected(self):
+        plan = self.plan()
+        plan['content_digest'] = '0' * 64
+        plan['plan_digest'] = self.g.digest({k: v for k, v in plan.items() if k != 'plan_digest'})
+        with self.assertRaises(ValueError): self.apply(plan, self.review(plan))
+
+    def test_template_historical_tiers_apply_without_a_manifest(self):
+        write(self.root / 'docs/plans/old.md', '# Plan\n')
+        git(self.root, 'add', '.'); git(self.root, 'commit', '-m', 'plan')
+        self.proposal['files']['edit'].append({'path': 'docs/plans/old.md', 'content': 'lost', 'reason': 'rewrite'})
+        self.proposal['write_scope'].append('docs/plans/old.md')
+        with self.assertRaisesRegex(ValueError, r"'docs/plans/\*\*' \(bundled template default"): self.plan()
+
+    def test_manifest_historical_tier_cannot_be_the_owner(self):
+        write(self.root / 'docs/governance.yaml', json.dumps({'tiers': {'current': ['README.md'], 'historical': ['docs/archive/**']}}))
+        git(self.root, 'add', '.'); git(self.root, 'commit', '-m', 'manifest')
+        self.proposal['authority_candidates'][0]['path'] = 'docs/archive/service.md'
+        self.proposal['files']['create'][0]['path'] = 'docs/archive/service.md'
+        self.proposal['write_scope'] = ['README.md', 'docs/archive/service.md']
+        self.proposal['link_repairs'] = []
+        with self.assertRaisesRegex(ValueError, 'historical material'): self.plan()
+
+    def test_uncommitted_work_blocks_even_a_dry_run(self):
+        write(self.root / 'docs/old.md', '# Old\n\nWork in progress.\n')
+        plan = self.plan()
+        with self.assertRaisesRegex(ValueError, 'git worktree add -b'): self.apply(plan, dry_run=True)
+
+    def test_plan_prepared_in_dirty_tree_never_applies(self):
+        write(self.root / 'scratch.txt', 'unbound work in progress')
+        plan = self.plan()
+        (self.root / 'scratch.txt').unlink()
+        with self.assertRaisesRegex(ValueError, 'prepared in a dirty tree'): self.apply(plan, dry_run=True)
+
+    def reseal(self, plan):
+        plan['content_digest'] = self.g._content_digest(plan)
+        plan['plan_digest'] = self.g.digest({k: v for k, v in plan.items() if k != 'plan_digest'})
+        return plan
+
+    def test_forged_binding_digest_cannot_reuse_review(self):
+        plan = self.plan()
+        review = self.review(plan)
+        write(self.root / 'README.md', '# Project\n\nA user edit made after review.\n')
+        git(self.root, 'add', '.'); git(self.root, 'commit', '-m', 'user edit')
+        forged = copy.deepcopy(plan)
+        current = self.g._binding(self.g.snapshot(self.root), forged, forged['repository_snapshot']['current_patterns'])
+        forged['repository_snapshot']['digest'] = self.g._binding_digest(str(self.root.resolve()), current)
+        forged['plan_digest'] = self.g.digest({k: v for k, v in forged.items() if k != 'plan_digest'})
+        with self.assertRaises(ValueError): self.apply(forged, review)
+        self.assertIn('user edit', (self.root / 'README.md').read_text())
+
+    def test_plan_with_extra_or_missing_bound_entry_is_rejected(self):
+        for change in ('drop', 'add'):
+            with self.subTest(change=change):
+                plan = copy.deepcopy(self.plan())
+                files = plan['repository_snapshot']['files']
+                if change == 'drop': files.pop('api/main.py')
+                else: files['api/other.py'] = None
+                snap = plan['repository_snapshot']
+                snap['digest'] = self.g._binding_digest(snap['root'], snap)
+                self.reseal(plan)
+                with self.assertRaisesRegex(ValueError, 'not the binding'): self.apply(plan, self.review(plan))
+
+    def test_stale_error_names_changed_paths(self):
+        plan = self.plan()
+        write(self.root / 'api/main.py', 'VALUE = 2\n')
+        git(self.root, 'add', '.'); git(self.root, 'commit', '-m', 'evidence changed')
+        with self.assertRaisesRegex(ValueError, r'bound paths changed since preparation: api/main\.py;'): self.apply(plan)
+        with self.assertRaisesRegex(ValueError, 'api/main.py'): self.g.review_package(self.root, plan)
+
+    def test_new_current_tier_document_invalidates_plan(self):
+        plan = self.plan()
+        write(self.root / 'docs/subsystems/other.md', '# Other\n')
+        git(self.root, 'add', '.'); git(self.root, 'commit', '-m', 'another owner')
+        with self.assertRaisesRegex(ValueError, r'docs/subsystems/other\.md \(new current document\)'): self.apply(plan)
+
+    def test_new_historical_document_keeps_plan_valid(self):
+        plan = self.plan()
+        write(self.root / 'docs/plans/next.md', '# Next plan\n')
+        git(self.root, 'add', '.'); git(self.root, 'commit', '-m', 'planning output')
+        self.assertEqual(self.apply(plan)['status'], 'applied')
+
+    def test_review_package_lists_current_inventory(self):
+        pack = self.g.review_package(self.root, self.plan())
+        self.assertIn('README.md', pack['current_inventory'])
+
+    def test_ignored_evidence_is_rejected(self):
+        write(self.root / '.gitignore', 'generated/\n')
+        write(self.root / 'generated/openapi.json', '{}\n')
+        git(self.root, 'add', '.gitignore'); git(self.root, 'commit', '-m', 'ignore generated')
+        self.proposal['authority_candidates'][0]['evidence'].append('generated/openapi.json')
+        with self.assertRaisesRegex(ValueError, 'Git-visible'): self.plan()
+
+    def test_doctor_explains_how_to_unblock(self):
+        write(self.root / 'api/main.py', 'VALUE = 2\n')
+        capabilities = self.g.doctor(self.root)['capabilities']
+        self.assertEqual(set(capabilities['remediation']), set(capabilities['blocking_reasons']))
+        self.assertIn('git worktree add -b', capabilities['remediation']['working-tree-dirty'])
+
+    def test_version_one_plan_and_review_are_explained(self):
+        plan = self.plan()
+        old = dict(plan, schema_version=1)
+        with self.assertRaisesRegex(ValueError, 'not supported'): self.apply(old)
+        with self.assertRaisesRegex(ValueError, 'not supported'): self.apply(plan, self.review(plan, schema_version=1))
+
+    def test_review_survives_worktree_created_under_other_umask(self):
+        (self.root / 'README.md').chmod(0o664)
+        plan = self.plan()
+        review = self.review(plan)
+        previous = os.umask(0o022)
+        try:
+            worktree = Path(self.tmp.name) / 'umask-worktree'
+            git(self.root, 'worktree', 'add', '-b', 'docs-umask', str(worktree))
+        finally:
+            os.umask(previous)
+        self.assertEqual(oct((worktree / 'README.md').stat().st_mode & 0o777), '0o644')
+        replanned = self.g.prepare_plan(worktree, proposal=self.proposal)
+        self.assertEqual(replanned['content_digest'], plan['content_digest'])
+        self.assertEqual(self.g.apply_plan(worktree, replanned, review)['status'], 'applied')
+
     def test_altered_plan_cannot_reuse_review(self):
         plan = self.plan()
         review = self.review(plan)
@@ -227,7 +405,7 @@ class WorkflowTests(unittest.TestCase):
     def test_missing_and_stale_reviews_rejected(self):
         plan = self.plan()
         with self.assertRaises(ValueError): self.g.apply_plan(self.root, plan, {}, allow_in_place=True)
-        with self.assertRaises(ValueError): self.apply(plan, self.review(plan, plan_digest='0'*64))
+        with self.assertRaises(ValueError): self.apply(plan, self.review(plan, content_digest='0'*64))
 
     def test_self_review_requires_opt_in_and_is_labeled(self):
         plan = self.plan()
@@ -425,6 +603,8 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(before,self.g.snapshot(self.root))
 
     def test_existing_history_cannot_be_rewritten_as_an_edit(self):
+        # The manifest, not the tool, names the historical tiers.
+        write(self.root/'docs/governance.yaml', json.dumps({'tiers':{'current':['README.md'],'historical':['docs/superpowers/**']}}))
         write(self.root/'docs/superpowers/plans/old.md','# Historic evidence\n')
         git(self.root,'add','.'); git(self.root,'commit','-m','history')
         self.proposal['files']['edit'].append({'path':'docs/superpowers/plans/old.md', 'content':'lost','reason':'rewrite'})

@@ -15,8 +15,8 @@ Keep one current owner per durable fact. Separate current behavior, decision rat
 
 ## Choose the smallest workflow
 
-- **audit**: read-only inspection and evidence-based findings. Run local checks, then review meaning; a green script is not a semantic pass.
-- **sync**: inspect the selected diff and update affected owners; use reviewed application for multi-file or contract-sensitive changes.
+- **audit**: read-only inspection and evidence-based findings. Run local checks, then review meaning. A green `verify` or `audit` is structure-only; it never compares a document with code.
+- **sync**: inspect the selected diff and update affected owners; use reviewed application for multi-file or contract-sensitive changes. Planning workflows that write plans or specs into `docs/` are the main drift source: when one ships, its durable conclusions go to the current owner in the same change.
 - **bootstrap / migrate**: create a draft, investigate the repository, propose owners, review the exact change, apply it, then verify and assess retrieval.
 - **upgrade**: propose reviewed edits only to generated assets. Preserve project-owned docs, mappings and policy.
 
@@ -46,7 +46,7 @@ python <skill-dir>/scripts/repo_docs.py review-pack --repo <repo> --plan <contro
 python <skill-dir>/scripts/repo_docs.py apply --repo <repo> --plan <control>/plan.json --review <control>/review.json --dry-run --json
 ```
 
-The agent authors the proposal; the script never invents subsystem names. `<control>` is `<repo>/.dsh-doc-audits`, which the tool makes Git-ignored on its first write. Reuse these names so reruns overwrite them; delete the directory once completion is verified. Use an isolated clean worktree; explicit `--allow-in-place` permits a clean ordinary checkout. Remove `--dry-run` only when the task authorizes writes and the reviewer approves this exact plan. No automatic reviewer or approval is supplied.
+The agent authors the proposal; the script never invents subsystem names. `<control>` is `<repo>/.dsh-doc-audits`, which the tool makes Git-ignored on its first write. Reuse these names so reruns overwrite them; delete the directory once completion is verified. Use an isolated clean worktree; explicit `--allow-in-place` permits a clean ordinary checkout. A worktree cannot see uncommitted work: commit it first ([migration](references/migration.md)). Remove `--dry-run` only when the task authorizes writes and the reviewer approves this exact plan. No automatic reviewer or approval is supplied.
 
 ## Completion
 

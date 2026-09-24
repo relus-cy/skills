@@ -4,6 +4,8 @@
 
 An Agent Note records durable decision rationale that current code and ordinary documentation cannot carry: the problem, the selected direction, genuine alternatives, and consequences. It prevents repeated re-litigation while keeping current contracts in their proper owners.
 
+Agent Notes are optional: a repository whose policy forbids decision records opts out as the repository contract describes, and rationale then needs another Markdown owner. The rest of this page applies only to repositories that keep Notes.
+
 ## Lifecycle
 
 - `proposed/`: a substantial future decision reviewed before complete implementation.

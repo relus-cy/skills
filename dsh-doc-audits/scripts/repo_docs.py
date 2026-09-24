@@ -25,24 +25,17 @@ VERSION = "0.2.0"
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TEMPLATE_ROOT = SKILL_ROOT / "assets" / "repo-governance"
 
-TARGET_FILES = (
-    "README.md",
-    "AGENTS.md",
-    "docs/AGENTS.md",
-    "docs/architecture.md",
-    "docs/backlog.md",
-    "docs/governance.yaml",
-    "docs/subsystems/_template.md",
-    "docs/runbooks/_template.md",
-    "docs/reference/_template.md",
-    ".agents/notes/README.md",
-    ".agents/notes/proposed/_template.md",
-    ".agents/notes/implemented/_template.md",
-    ".agents/notes/rejected/.gitkeep",
-    ".agents/notes/archived/.gitkeep",
-    "scripts/verify_docs.py",
-    ".github/workflows/docs-governance.yml",
-)
+# Optional tiers live in assets/skeletons/; an agent copies one when docs/AGENTS.md says the tier is due.
+CI_WORKFLOW = ".github/workflows/docs-governance.yml"
+
+
+def _template_targets(templates: Path, repo: Path) -> list[Path]:
+    """The bootstrap set: every template file, with CI only where the repository already runs workflows."""
+    files = sorted(path for path in templates.rglob("*") if path.is_file())
+    if not (repo / ".github" / "workflows").is_dir():
+        files = [path for path in files if path.relative_to(templates).as_posix() != CI_WORKFLOW]
+    return files
+
 
 DEFAULT_EXCLUDE_PATTERNS = (
     ".git/**",
@@ -53,14 +46,12 @@ DEFAULT_EXCLUDE_PATTERNS = (
 )
 
 
-KNOWN_HISTORICAL_SURFACES = (
-    "docs/superpowers",
-    "docs/releases",
-    "docs/postmortems",
-    "docs/postmortem",
-    "docs/plans",
-    "docs/reports",
-    "docs/handoffs",
+# Folder names that planning, reporting and release workflows write under docs/, at any depth.
+HISTORICAL_FOLDER_NAMES = frozenset({"plans", "reports", "handoffs", "releases", "postmortems", "postmortem"})
+
+STRUCTURE_ONLY_ASSURANCE = (
+    "structure-only: a pass proves manifest, link, lifecycle, budget and readiness conditions, "
+    "not that any document agrees with the code; semantic review and fresh-session assessment remain required"
 )
 
 
@@ -146,10 +137,10 @@ def inspect_repository(repo: str | os.PathLike[str] | Path) -> dict[str, Any]:
         signals.append("javascript")
     if (root / "api").is_dir() or _contains_token(root, files, ("FastAPI", "Flask(", "django")):
         signals.append("web-api")
-    if (root / "web").is_dir() or (root / "frontend").is_dir() or _contains_token(root, files, ("React", "Vue", "lightweight-charts")):
+    if (root / "web").is_dir() or (root / "frontend").is_dir() or _contains_token(root, files, ("React", "Vue")):
         signals.append("web-ui")
 
-    historical = [surface for surface in KNOWN_HISTORICAL_SURFACES if (root / surface).exists()]
+    historical = _historical_surfaces(root, files)
     doc_surfaces = [
         p
         for p in ("README.md", "AGENTS.md", "CONTEXT.md", "docs")
@@ -167,6 +158,39 @@ def inspect_repository(repo: str | os.PathLike[str] | Path) -> dict[str, Any]:
     }
 
 
+def _declared_historical_patterns(root: Path) -> list[str]:
+    """The target manifest's `tiers.historical`, or the bundled template's when it has none.
+
+    An unreadable target manifest yields none: `verify` reports it, and inspection must not
+    substitute the template. The guard-side counterpart is workflow_guard._manifest_tiers.
+    """
+    manifest = root / "docs" / "governance.yaml"
+    path = manifest if manifest.is_file() else DEFAULT_TEMPLATE_ROOT / "docs" / "governance.yaml"
+    try:
+        patterns = json.loads(path.read_text(encoding="utf-8"))["tiers"]["historical"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return []
+    return [str(pattern) for pattern in patterns] if isinstance(patterns, list) else []
+
+
+def _historical_surfaces(root: Path, files: Iterable[str]) -> list[str]:
+    """Existing declared historical tiers plus docs/ folders named like planning or release output."""
+    surfaces = set()
+    for pattern in _declared_historical_patterns(root):
+        prefix = pattern[:-3].rstrip("/") if pattern.endswith("/**") else pattern
+        if not any(c in prefix for c in "*?[") and (root / prefix).exists():
+            surfaces.add(prefix)
+    for rel in files:
+        parts = rel.split("/")
+        if parts[0] != "docs":
+            continue
+        for depth in range(1, len(parts) - 1):
+            if parts[depth] in HISTORICAL_FOLDER_NAMES:
+                surfaces.add("/".join(parts[: depth + 1]))
+                break
+    return sorted(surfaces)
+
+
 def build_plan(
     repo: str | os.PathLike[str] | Path,
     profile: str = "small-web-app",
@@ -174,10 +198,11 @@ def build_plan(
     root = _normalize_repo(repo)
     inventory = inspect_repository(root)
     existing = set(_relative_files(root))
-    preserve = sorted(path for path in TARGET_FILES if path in existing)
+    targets = [path.relative_to(DEFAULT_TEMPLATE_ROOT).as_posix() for path in _template_targets(DEFAULT_TEMPLATE_ROOT, root)]
+    preserve = sorted(path for path in targets if path in existing)
     # Root entry points are project-owned and are preserved even though templates do not replace them.
     preserve.extend(path for path in ("README.md", "AGENTS.md", "CONTEXT.md") if path in existing and path not in preserve)
-    create = sorted(path for path in TARGET_FILES if path not in existing)
+    create = sorted(path for path in targets if path not in existing)
 
     return {
         "schema_version": 1,
@@ -240,7 +265,7 @@ def bootstrap_repository(
         "would_update": [],
     }
 
-    template_files = sorted(path for path in templates.rglob("*") if path.is_file())
+    template_files = _template_targets(templates, root)
     # Preflight the complete template set before creating anything.
     for source in template_files:
         if source.is_symlink():
@@ -254,7 +279,7 @@ def bootstrap_repository(
         if candidate.exists() and (not candidate.is_file() or candidate.stat().st_nlink > 1):
             raise ValueError(f"bootstrap target is not an ordinary single-link file: {rel}")
     if force:
-        generated = {"scripts/verify_docs.py", ".github/workflows/docs-governance.yml"}
+        generated = {"scripts/verify_docs.py", CI_WORKFLOW}
         for source in template_files:
             rel = source.relative_to(templates)
             target = root / rel
@@ -650,6 +675,17 @@ def verify_repository(repo: str | os.PathLike[str] | Path, *, completion: bool =
             "A file may not belong to both current and historical tiers.",
         ))
 
+    for rel in files:
+        if (rel.startswith("docs/") and rel.endswith(".md")
+                and not any(_matches(rel, p) for p in current_patterns + historical_patterns)):
+            findings.append(_finding(
+                "documentation-untiered",
+                "warning",
+                rel,
+                "Neither tiers.current nor tiers.historical covers this document, so authority checks skip it; "
+                "move it to the tier docs/AGENTS.md assigns, or add its pattern to docs/governance.yaml.",
+            ))
+
     findings.extend(_markdown_link_findings(root, exclude_patterns, historical_patterns))
     findings.extend(_agent_note_findings(root, config))
     findings.extend(_budget_findings(root, config))
@@ -747,6 +783,7 @@ def impact_repository(
         return {"ok": False, "changed_files": [], "findings": findings}
 
     changed = sorted(line.strip().replace(os.sep, "/") for line in completed.stdout.splitlines() if line.strip())
+    existing = _relative_files(root, config.get("exclude") or [])
     for mapping in config.get("impact_mappings") or []:
         code_patterns = list(mapping.get("code") or [])
         doc_patterns = list(mapping.get("docs") or [])
@@ -755,6 +792,18 @@ def impact_repository(
             continue
         docs_changed = sorted(path for path in changed if any(_matches(path, pattern) for pattern in doc_patterns))
         if docs_changed:
+            continue
+        if not any(_matches(path, pattern) for path in existing for pattern in doc_patterns):
+            # A growing project reaches the mapped code before it has the owner; ask for the owner, never block on it.
+            findings.append(_finding(
+                "doc-owner-missing",
+                "warning",
+                str(mapping.get("name") or "unnamed-mapping"),
+                "Mapped code changed and no owning document exists yet; create the tier docs/AGENTS.md assigns, "
+                "or narrow the mapping.",
+                changed_code=code_changed,
+                expected_docs=doc_patterns,
+            ))
             continue
         level = str(mapping.get("level") or "soft")
         severity = "error" if level == "hard" else "warning"
@@ -932,8 +981,10 @@ def main(argv: list[str] | None = None) -> int:
                 payload["ok"] = not any(f["severity"] == "error" for f in payload["findings"])
                 payload["summary"] = {"errors": sum(f["severity"] == "error" for f in payload["findings"]),
                                       "warnings": sum(f["severity"] != "error" for f in payload["findings"])}
+            payload["assurance"] = STRUCTURE_ONLY_ASSURANCE
         elif args.command == "audit":
             payload = audit_repository(args.repo)
+            payload["assurance"] = STRUCTURE_ONLY_ASSURANCE
         elif args.command == "impact":
             payload = impact_repository(args.repo, base=args.base, head=args.head)
         else:  # pragma: no cover - argparse enforces this

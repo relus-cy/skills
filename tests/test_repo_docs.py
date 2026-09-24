@@ -53,7 +53,20 @@ class RepositoryInspectionTests(unittest.TestCase):
             self.assertEqual(result["repository_state"], "brownfield")
             self.assertIn("python", result["stack_signals"])
             self.assertIn("web-api", result["stack_signals"])
-            self.assertIn("docs/superpowers", result["historical_surfaces"])
+            self.assertIn("docs/superpowers/plans", result["historical_surfaces"])
+
+    def test_inspect_ignores_template_when_manifest_is_unreadable(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            write(repo / "docs" / "governance.yaml", "tiers: [not json\n")
+            write(repo / "docs" / "releases" / "v1.md", "# v1\n")
+            write(repo / "docs" / "team" / "plans" / "q3.md", "# Q3\n")
+            write(repo / ".agents" / "notes" / "archived" / "old.md", "# Old\n")
+
+            result = self.repo_docs.inspect_repository(repo)
+
+            # Only folder names count; the template's .agents/notes/archived/** tier is not substituted.
+            self.assertEqual(result["historical_surfaces"], ["docs/releases", "docs/team/plans"])
 
     def test_inspect_does_not_infer_web_stack_from_documentation_text(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -98,8 +111,8 @@ class RepositoryInspectionTests(unittest.TestCase):
             self.assertEqual(plan["mode"], "migrate")
             self.assertIn("README.md", plan["preserve"])
             self.assertIn("AGENTS.md", plan["preserve"])
-            self.assertIn("docs/architecture.md", plan["create"])
-            self.assertIn("docs/subsystems/_template.md", plan["create"])
+            self.assertIn("docs/AGENTS.md", plan["create"])
+            self.assertNotIn("docs/architecture.md", plan["create"])
             self.assertEqual(plan["profile"], "small-web-app")
 
 

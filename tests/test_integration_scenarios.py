@@ -45,7 +45,7 @@ class ScenarioFixtureTests(unittest.TestCase):
 
             self.assertEqual(plan["mode"], "migrate")
             self.assertIn("python", plan["inventory"]["stack_signals"])
-            self.assertIn("docs/superpowers", plan["historical_surfaces"])
+            self.assertIn("docs/superpowers/plans", plan["historical_surfaces"])
 
     def test_existing_docs_fixture_is_preserved_by_bootstrap(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

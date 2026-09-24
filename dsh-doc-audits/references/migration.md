@@ -10,9 +10,21 @@ Prepare all new owners, routing changes, metadata-only historical demotions and 
 
 ## Application
 
-The prepared plan binds content and a repository snapshot. Reviewer approval binds that plan's digest. `apply --dry-run` checks the whole write set before any change. Then the authorized write run applies only that set. It does not execute commands embedded in documents or verification lists.
+The prepared plan binds content and repository state as [authority review](authority-review.md) describes. Reviewer approval binds its `content_digest`. `apply --dry-run` checks the whole write set before any change. Then the authorized write run applies only that set. It does not execute commands embedded in documents or verification lists.
 
-Dirty repositories can be inspected. Move actual application to a clean worktree, or use explicit in-place permission on a clean checkout. Stop on changed snapshots, unresolved domain conflicts or a review verdict other than approve. Split independently decidable work into another plan instead of suppressing findings.
+Dirty repositories can be inspected. Move actual application to a clean worktree, or use explicit in-place permission on a clean checkout. Stop on changed bound files, unresolved domain conflicts or a review verdict other than approve. Split independently decidable work into another plan instead of suppressing findings.
+
+## Uncommitted work
+
+`apply` refuses a dirty tree, including with `--dry-run`, and a plan prepared in a dirty tree never applies. A linked worktree is created from a commit, so it cannot see uncommitted work. When the migration must build on work in progress:
+
+1. Commit the work in progress on its own branch in the original checkout.
+2. Create a worktree on a new branch from that commit: `git worktree add -b <branch> <path> <commit>`. A detached worktree cannot record the migration commit on a branch.
+3. Author the proposal in that worktree. A demotion's content must end with the post-WIP body, byte for byte, because the check is `content.endswith(<current body>)`.
+
+## Preview
+
+A plan applies only in the checkout that prepared it (`plan belongs to another checkout`), so a scratch clone cannot preview a change for the real repository. Preview in the real clean worktree: the review package's `diff` plus the `would_change` list from `apply --dry-run`. Unrelated commits keep the plan valid. Replanning an unchanged proposal against identical bound files, for example in a fresh worktree, keeps the existing review.
 
 ## Completion and rollback
 

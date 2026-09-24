@@ -34,6 +34,11 @@ DEFAULT_EXCLUDE_PATTERNS = (
     "**/__pycache__/**",
 )
 
+STRUCTURE_ONLY_ASSURANCE = (
+    "structure-only: a pass proves manifest, link, lifecycle, budget and readiness conditions, "
+    "not that any document agrees with the code; semantic review and fresh-session assessment remain required"
+)
+
 def _normalize_repo(repo: str | os.PathLike[str] | Path) -> Path:
     path = Path(repo).expanduser().resolve()
     if not path.exists():
@@ -418,6 +423,17 @@ def verify_repository(repo: str | os.PathLike[str] | Path, *, completion: bool =
             "A file may not belong to both current and historical tiers.",
         ))
 
+    for rel in files:
+        if (rel.startswith("docs/") and rel.endswith(".md")
+                and not any(_matches(rel, p) for p in current_patterns + historical_patterns)):
+            findings.append(_finding(
+                "documentation-untiered",
+                "warning",
+                rel,
+                "Neither tiers.current nor tiers.historical covers this document, so authority checks skip it; "
+                "move it to the tier docs/AGENTS.md assigns, or add its pattern to docs/governance.yaml.",
+            ))
+
     findings.extend(_markdown_link_findings(root, exclude_patterns, historical_patterns))
     findings.extend(_agent_note_findings(root, config))
     findings.extend(_budget_findings(root, config))
@@ -512,6 +528,7 @@ def impact_repository(
         return {"ok": False, "changed_files": [], "findings": findings}
 
     changed = sorted(line.strip().replace(os.sep, "/") for line in completed.stdout.splitlines() if line.strip())
+    existing = _relative_files(root, config.get("exclude") or [])
     for mapping in config.get("impact_mappings") or []:
         code_patterns = list(mapping.get("code") or [])
         doc_patterns = list(mapping.get("docs") or [])
@@ -520,6 +537,18 @@ def impact_repository(
             continue
         docs_changed = sorted(path for path in changed if any(_matches(path, pattern) for pattern in doc_patterns))
         if docs_changed:
+            continue
+        if not any(_matches(path, pattern) for path in existing for pattern in doc_patterns):
+            # A growing project reaches the mapped code before it has the owner; ask for the owner, never block on it.
+            findings.append(_finding(
+                "doc-owner-missing",
+                "warning",
+                str(mapping.get("name") or "unnamed-mapping"),
+                "Mapped code changed and no owning document exists yet; create the tier docs/AGENTS.md assigns, "
+                "or narrow the mapping.",
+                changed_code=code_changed,
+                expected_docs=doc_patterns,
+            ))
             continue
         level = str(mapping.get("level") or "soft")
         severity = "error" if level == "hard" else "warning"
@@ -572,7 +601,7 @@ def main(argv=None):
         payload["ok"] = not any(f["severity"] == "error" for f in payload["findings"])
         payload["summary"] = {"errors": sum(f["severity"] == "error" for f in payload["findings"]),
                               "warnings": sum(f["severity"] != "error" for f in payload["findings"])}
-        payload["assurance"] = "deterministic checks only; semantic review and fresh-session assessment remain agent tasks"
+        payload["assurance"] = STRUCTURE_ONLY_ASSURANCE
         _emit(payload, args.json)
         return 0 if payload["ok"] else 1
     except (ValueError, OSError) as exc:

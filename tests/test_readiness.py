@@ -65,9 +65,10 @@ class ReadinessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.mod.bootstrap_repository(root)
-            text = (root / 'docs/architecture.md').read_text()
-            self.assertIn('Status: scaffold', text)
-            self.assertNotIn('Status: current authority', text)
+            skeleton = Path(self.mod.SKILL_ROOT) / 'assets/skeletons/docs/architecture.md'
+            for text in ((root / 'README.md').read_text(), skeleton.read_text()):
+                self.assertIn('Status: scaffold', text)
+                self.assertNotIn('Status: current authority', text)
 
     def test_standalone_rejects_empty_manifest(self):
         self.mod.bootstrap_repository(self.root)
@@ -91,14 +92,14 @@ class ReadinessTests(unittest.TestCase):
 
     def test_bootstrap_rejects_symlink_target_before_any_write(self):
         external=Path(self.temp.name)/'outside'; external.mkdir()
-        link=self.root/'docs/runbooks'; link.symlink_to(external,target_is_directory=True)
+        link=self.root/'scripts'; link.symlink_to(external,target_is_directory=True)
         before=(self.root/'README.md').read_bytes()
         with self.assertRaises(ValueError): self.mod.bootstrap_repository(self.root)
         self.assertEqual(list(external.iterdir()),[])
         self.assertEqual((self.root/'README.md').read_bytes(),before)
 
     def test_copied_subsystem_template_is_still_scaffold(self):
-        template=Path(self.mod.DEFAULT_TEMPLATE_ROOT)/'docs/subsystems/_template.md'
+        template=Path(self.mod.SKILL_ROOT)/'assets/skeletons/docs/subsystems/_template.md'
         write(self.root/'docs/subsystems/copied.md',template.read_text())
         self.assertIn('documentation-scaffold',self.codes())
 

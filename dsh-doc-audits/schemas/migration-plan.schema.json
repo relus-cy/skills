@@ -254,7 +254,7 @@
       }
     },
     "schema_version": {
-      "const": 1
+      "const": 2
     },
     "skill_version": {
       "type": "string",
@@ -314,8 +314,29 @@
         "files": {
           "type": "object",
           "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "current_patterns": {
+          "type": "array",
+          "items": {
             "type": "string",
-            "pattern": "^[a-f0-9]{64}$"
+            "minLength": 1
+          }
+        },
+        "current_inventory": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "digest": {
@@ -332,6 +353,8 @@
         "dirty",
         "tracked_control",
         "files",
+        "current_patterns",
+        "current_inventory",
         "digest"
       ],
       "additionalProperties": false
@@ -393,6 +416,17 @@
         "additionalProperties": false
       }
     },
+    "content_digest": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "plan_digest": {
       "anyOf": [
         {
@@ -422,6 +456,7 @@
     "state",
     "repository_snapshot",
     "changes",
+    "content_digest",
     "plan_digest"
   ],
   "additionalProperties": false

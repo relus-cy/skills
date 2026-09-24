@@ -24,31 +24,35 @@ def load_module():
 
 
 class TemplateTests(unittest.TestCase):
-    def test_asset_tree_contains_complete_repository_contract(self) -> None:
-        expected = {
-            "README.md",
-            "AGENTS.md",
-            "docs/AGENTS.md",
-            "docs/architecture.md",
-            "docs/backlog.md",
-            "docs/governance.yaml",
-            "docs/subsystems/_template.md",
-            "docs/runbooks/_template.md",
-            "docs/reference/_template.md",
-            ".agents/notes/README.md",
-            ".agents/notes/proposed/_template.md",
-            ".agents/notes/implemented/_template.md",
-            ".agents/notes/rejected/.gitkeep",
-            ".agents/notes/archived/.gitkeep",
-            "scripts/verify_docs.py",
-            ".github/workflows/docs-governance.yml",
-        }
-        actual = {
-            path.relative_to(ASSETS).as_posix()
-            for path in ASSETS.rglob("*")
-            if path.is_file()
-        }
-        self.assertTrue(expected.issubset(actual), sorted(expected - actual))
+    def test_asset_tree_separates_core_from_on_demand_skeletons(self) -> None:
+        core = {"README.md", "AGENTS.md", "docs/AGENTS.md", "docs/governance.yaml",
+                "scripts/verify_docs.py", ".github/workflows/docs-governance.yml"}
+        skeletons = {"docs/architecture.md", "docs/backlog.md", "docs/subsystems/_template.md",
+                     "docs/runbooks/_template.md", "docs/reference/_template.md", ".agents/notes/README.md",
+                     ".agents/notes/proposed/_template.md", ".agents/notes/implemented/_template.md",
+                     ".agents/notes/rejected/.gitkeep", ".agents/notes/archived/.gitkeep"}
+        def tree(root):
+            return {path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()}
+        self.assertEqual(tree(ASSETS), core)
+        self.assertEqual(tree(SKILL / "assets" / "skeletons"), skeletons)
+
+    def test_bootstrap_installs_core_and_ci_only_where_workflows_exist(self) -> None:
+        repo_docs = load_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            plain, with_ci = Path(tmp) / "plain", Path(tmp) / "ci"
+            plain.mkdir(); (with_ci / ".github" / "workflows").mkdir(parents=True)
+            created = sorted(repo_docs.bootstrap_repository(plain)["created"])
+            self.assertEqual(created, ["AGENTS.md", "README.md", "docs/AGENTS.md", "docs/governance.yaml", "scripts/verify_docs.py"])
+            self.assertIn(".github/workflows/docs-governance.yml", repo_docs.bootstrap_repository(with_ci)["created"])
+
+    def test_bootstrapped_repository_has_no_findings(self) -> None:
+        # Minimal core must not link to or name owners it did not install.
+        repo_docs = load_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            repo_docs.bootstrap_repository(repo)
+            result = repo_docs.audit_repository(repo)
+            self.assertEqual([f for f in result["findings"] if f["code"] != "documentation-scaffold"], [])
 
     def test_governance_template_is_json_compatible_after_render(self) -> None:
         text = (ASSETS / "docs" / "governance.yaml").read_text(encoding="utf-8")
@@ -128,12 +132,13 @@ class TemplateTests(unittest.TestCase):
             )
             (repo / "docs" / "architecture.md").write_text(
                 "# Architecture\n\n" + paragraph +
-                "\n\nThe current authority is docs/superpowers/plans/old.md.\n",
+                "\n\n当前行为以 docs/plans/old.md 为准。\n",
                 encoding="utf-8",
             )
             subsystem = repo / "docs" / "subsystems" / "example.md"
+            subsystem.parent.mkdir(parents=True)
             subsystem.write_text("# Example\n\n" + paragraph + "\n", encoding="utf-8")
-            historical = repo / "docs" / "superpowers" / "plans" / "old.md"
+            historical = repo / "docs" / "plans" / "old.md"
             historical.parent.mkdir(parents=True, exist_ok=True)
             historical.write_text("# Old plan\n", encoding="utf-8")
 
@@ -154,11 +159,11 @@ class TemplateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
             repo_docs.bootstrap_repository(repo, profile="small-web-app")
-            historical = repo / "docs" / "superpowers" / "plans" / "old.md"
+            historical = repo / "docs" / "plans" / "old.md"
             historical.parent.mkdir(parents=True, exist_ok=True)
             historical.write_text(
                 "# Old plan\n\n```js\nbtn.classList[busy ? 'add' : 'remove']('spin');\n```\n\n"
-                "[removed](../../../src/removed.py)\n",
+                "[removed](../../src/removed.py)\n",
                 encoding="utf-8",
             )
 

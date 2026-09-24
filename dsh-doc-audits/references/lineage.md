@@ -35,7 +35,10 @@ The portable skill does not require:
 - optional profile hints without fixed output trees;
 - prepared plans, compact review packages and exact-scoped application;
 - explicit idempotence and existing-document preservation;
-- fresh-session retrieval testing.
+- fresh-session retrieval testing;
+- an Agent Notes opt-out that requires another Markdown home for rationale (DSH requires Agent Notes);
+- optional retention of shipped plans under declared historical tiers (DSH treats `docs/` scratch as expiring);
+- a bootstrap core with tiers created when content first needs them (DSH repositories carry the full structure).
 
 DeepSeek Harness is MIT-licensed. Repository attribution is recorded in `THIRD_PARTY_NOTICES.md`.
 

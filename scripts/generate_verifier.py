@@ -13,6 +13,7 @@ FUNCTIONS = {
     '_agent_note_findings', '_budget_findings', 'verify_repository',
     '_current_markdown_files', 'audit_repository', 'impact_repository', '_emit',
 }
+CONSTANTS = {'DEFAULT_EXCLUDE_PATTERNS', 'STRUCTURE_ONLY_ASSURANCE'}
 WRAPPER = '''
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Repository-local documentation checks")
@@ -33,7 +34,7 @@ def main(argv=None):
         payload["ok"] = not any(f["severity"] == "error" for f in payload["findings"])
         payload["summary"] = {"errors": sum(f["severity"] == "error" for f in payload["findings"]),
                               "warnings": sum(f["severity"] != "error" for f in payload["findings"])}
-        payload["assurance"] = "deterministic checks only; semantic review and fresh-session assessment remain agent tasks"
+        payload["assurance"] = STRUCTURE_ONLY_ASSURANCE
         _emit(payload, args.json)
         return 0 if payload["ok"] else 1
     except (ValueError, OSError) as exc:
@@ -51,7 +52,7 @@ def render():
     for node in nodes:
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             selected.append(ast.get_source_segment(text, node))
-        elif isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'DEFAULT_EXCLUDE_PATTERNS' for t in node.targets):
+        elif isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id in CONSTANTS for t in node.targets):
             selected.append(ast.get_source_segment(text, node))
         elif isinstance(node, ast.FunctionDef) and node.name in FUNCTIONS:
             selected.append(ast.get_source_segment(text, node))

@@ -56,7 +56,7 @@ def main():
         plan=cli('plan','--repo',str(repo),'--proposal',str(control/'proposal.json'),'--output',str(control/'plan.json'))
         pack=cli('review-pack','--repo',str(repo),'--plan',str(control/'plan.json'))
         assert pack['plan_digest']==plan['plan_digest']
-        review={'schema_version':1,'plan_digest':plan['plan_digest'],'verdict':'approve',
+        review={'schema_version':2,'content_digest':pack['content_digest'],'verdict':'approve',
                 'reviewer':{'kind':'human','identity':'synthetic-test-reviewer','context_id':'synthetic-review'},
                 'missing_domains':[],'over_split_owners':[],'under_split_owners':[],
                 'authority_conflicts':[],'required_changes':[], 'summary':'SYNTHETIC fixture approval, never a real model review.'}
@@ -76,7 +76,7 @@ def main():
                    {'topic':'architecture','answer':'An entry point with a documented service boundary.','evidence':['docs/architecture.md']},
                    {'topic':'subsystem','answer':'answer returns 42.','evidence':['docs/subsystems/answer.md']},
                    {'topic':'operations','answer':'Local deterministic checks are the only operation in this fixture.','evidence':['docs/reference/verification.md']},
-                   {'topic':'decision','answer':'This fixture creates no durable design decision.','evidence':['.agents/notes/README.md']},
+                   {'topic':'decision','answer':'This fixture creates no durable design decision; the documentation standard says when a decision gets a record.','evidence':['docs/AGENTS.md']},
                    {'topic':'authority','answer':'Local docs rules separate current owners and historical records.','evidence':['docs/AGENTS.md']},
                    {'topic':'verification','answer':'Run scripts/verify_docs.py with Python.','evidence':['docs/reference/verification.md']}],
                'limitations':['Synthetic test data: no real human or independent model assessment occurred.']}

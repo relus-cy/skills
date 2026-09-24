@@ -16,7 +16,8 @@ Host agent / human reviewer
   -> schemas/                 plan, review and reader-evidence contracts
   -> scripts/repo_docs.py     inspection, readiness checks and command entry point
        -> workflow_guard.py   snapshots, review binding and scoped filesystem writes
-  -> assets/repo-governance/  initial target scaffolding
+  -> assets/repo-governance/  core installed by bootstrap
+  -> assets/skeletons/        starting pages for tiers created on demand
 
 Target repository
   -> docs/governance.yaml     project-owned policy and owner mapping
@@ -28,7 +29,7 @@ Target repository
 
 Read-only planning gathers the actual checkout and creates an unexecutable draft. The agent authors a proposal; preparation seals it. A compact review package carries candidate boundaries and one exact diff. A separate review approves those bytes before application. The tool does not choose the model or create an approval. Final semantic review and a fresh reader remain outside deterministic proof.
 
-Bootstrap only creates missing scaffolds. Scaffolds have explicit status and fail completion until authored. Audit combines repository-local checks with agent judgment; routine diff synchronization can stay focused on existing owners. Large migrations and generated-asset upgrades use the prepared-plan boundary.
+Bootstrap only creates missing core files; other tiers appear when content needs them. Scaffolds have explicit status and fail completion until authored. Audit combines repository-local checks with agent judgment; routine diff synchronization can stay focused on existing owners. Large migrations and generated-asset upgrades use the prepared-plan boundary.
 
 ## Verification and generation
 

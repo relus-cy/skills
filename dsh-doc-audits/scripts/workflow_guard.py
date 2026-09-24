@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import copy
 import difflib
+from fnmatch import fnmatchcase
 import hashlib
 import json
 import os
@@ -23,6 +24,9 @@ CONTROL = '.dsh-doc-audits'
 # `*` also matches this file, so Git and gitignore-aware search skip the whole directory.
 CONTROL_IGNORE = '# dsh-doc-audits control files; delete this directory once the migration is verified.\n*\n'
 GENERATED = {'scripts/verify_docs.py', '.github/workflows/docs-governance.yml'}
+MANIFEST = 'docs/governance.yaml'
+# A repository without a manifest falls back to the bundled template's historical tiers.
+TEMPLATE_MANIFEST = Path(__file__).resolve().parents[1] / 'assets/repo-governance' / MANIFEST
 MAX_JSON_BYTES = 16 * 1024 * 1024
 
 
@@ -166,6 +170,11 @@ def control_directory(root: Path) -> Path:
     return control
 
 
+def _git_mode(mode: int) -> int:
+    """Git tracks only the executable bit, so umask differences between checkouts never change a fingerprint."""
+    return 0o755 if mode & 0o111 else 0o644
+
+
 def _file_digest(content: bytes, mode: int, kind='file') -> str:
     return hashlib.sha256(f'{kind}:{mode:o}\0'.encode()+content).hexdigest()
 
@@ -178,7 +187,7 @@ def _fingerprint(path: Path) -> str:
         # Git submodule: bind the recorded HEAD, never traverse it.
         head = _git(path, 'rev-parse','HEAD', required=True).stdout.strip()
         return _file_digest(head, mode, 'gitlink')
-    hasher = hashlib.sha256(f'file:{mode:o}\0'.encode())
+    hasher = hashlib.sha256(f'file:{_git_mode(mode):o}\0'.encode())
     with path.open('rb') as stream:
         for chunk in iter(lambda: stream.read(1024*1024), b''):
             hasher.update(chunk)
@@ -187,6 +196,91 @@ def _fingerprint(path: Path) -> str:
 
 def _snapshot_digest(value: dict[str, Any]) -> str:
     return digest({k:value[k] for k in ('root','head','branch','files')})
+
+
+def _bound_paths(plan: dict[str, Any]) -> list[str]:
+    """Every path the plan reads or writes; nothing else in the checkout binds it."""
+    paths={MANIFEST,*plan['write_scope'],*plan['files']['preserve']}
+    for owner in plan['authority_candidates']:
+        paths.add(owner['path']); paths.update(owner['current_sources'])
+        paths.update(rel for rel in owner['evidence'] if not rel.startswith('decision:'))
+    for repair in plan['link_repairs']:
+        paths.update(repair['targets'])
+    return sorted(paths)
+
+
+def _bind(files: dict[str, str], paths: list[str]) -> dict[str, str | None]:
+    """Fingerprints of the bound paths: a directory binds every file under it, an absent path binds its absence."""
+    bound={}
+    for rel in paths:
+        hits={k:v for k,v in files.items() if k==rel or k.startswith(rel+'/')}
+        parts=rel.split('/')
+        # snapshot() records a symlinked or submodule ancestor instead of the files below it.
+        for i in range(1,len(parts)):
+            ancestor='/'.join(parts[:i])
+            if ancestor in files: hits[ancestor]=files[ancestor]
+        bound.update(hits or {rel:None})
+    return dict(sorted(bound.items()))
+
+
+def _manifest_tiers(root: Path, plan: dict[str, Any]) -> tuple[dict[str, list[str]], str]:
+    """`tiers` from the current manifest (template default when absent) united with any manifest the plan writes."""
+    path=root/MANIFEST
+    planned=[item['content'] for group in ('create','edit') for item in plan['files'][group] if item['path']==MANIFEST]
+    source=MANIFEST if path.is_file() or planned else f'bundled template default: no {MANIFEST} in this repository'
+    texts=[path.read_text(encoding='utf-8') if path.is_file() else TEMPLATE_MANIFEST.read_text(encoding='utf-8'),*planned]
+    tiers={'current':set(),'historical':set()}
+    for text in texts:
+        try:
+            value={name:json.loads(text)['tiers'][name] for name in tiers}
+        except (ValueError, KeyError, TypeError) as exc:
+            raise ValueError(f'{MANIFEST} must be JSON-compatible YAML with tiers.current and tiers.historical arrays') from exc
+        for name,patterns in value.items():
+            if not isinstance(patterns,list) or not all(isinstance(v,str) and v for v in patterns):
+                raise ValueError(f'{MANIFEST} tiers.{name} must be an array of patterns')
+            tiers[name].update(patterns)
+    return {name:sorted(patterns) for name,patterns in tiers.items()}, source
+
+
+def _matching(rel: str, patterns: list[str]) -> str | None:
+    """The first pattern covering rel, with repo_docs._matches semantics: a trailing /** covers the directory and below."""
+    for pattern in patterns:
+        if pattern.endswith('/**'):
+            prefix=pattern[:-3].rstrip('/')
+            if rel==prefix or rel.startswith(prefix+'/'): return pattern
+        elif fnmatchcase(rel,pattern): return pattern
+    return None
+
+
+def _binding(snap: dict[str, Any], plan: dict[str, Any], current_patterns: list[str]) -> dict[str, Any]:
+    """Bound fingerprints plus the names of all current-tier documents, whose set a reviewer judges for gaps and overlaps."""
+    files=_bind(snap['files'],_bound_paths(plan))
+    inventory=sorted(rel for rel in snap['files'] if _matching(rel,current_patterns))
+    return {'files':files,'current_patterns':current_patterns,'current_inventory':inventory}
+
+
+def _binding_digest(root: str, binding: dict[str, Any]) -> str:
+    return digest({'root':root,**{k:binding[k] for k in ('files','current_patterns','current_inventory')}})
+
+
+def _binding_changes(before: dict[str, Any], now: dict[str, Any]) -> list[str]:
+    files=sorted(k for k in before['files'].keys()|now['files'].keys() if before['files'].get(k,'unbound')!=now['files'].get(k,'unbound'))
+    added=sorted(set(now['current_inventory'])-set(before['current_inventory']))
+    removed=sorted(set(before['current_inventory'])-set(now['current_inventory']))
+    return files+[f'{rel} (new current document)' for rel in added]+[f'{rel} (removed current document)' for rel in removed]
+
+
+def _stale(changes: list[str]) -> ValueError:
+    return ValueError(f'bound paths changed since preparation: {", ".join(changes)}; run plan --proposal again in this checkout; '
+                      "the existing review still applies if the new plan's content_digest is unchanged")
+
+
+def _content_digest(plan: dict[str, Any]) -> str:
+    """What a reviewer judges: proposal, compiled bytes, bound fingerprints and current document set, not checkout location."""
+    body={k:v for k,v in plan.items() if k not in {'plan_digest','content_digest','skill_version','repository_snapshot'}}
+    snap=plan['repository_snapshot']
+    body['binding']={k:snap[k] for k in ('files','current_patterns','current_inventory')}
+    return digest(body)
 
 
 def snapshot(repo: str | Path) -> dict[str, Any]:
@@ -244,13 +338,26 @@ def snapshot(repo: str | Path) -> dict[str, Any]:
     return value
 
 
+IN_PLACE='isolated-worktree-or-explicit-in-place-permission-required'
+REMEDIATION={
+    'git-initialization-required':'target is not a Git repository; run git init and commit before apply',
+    'working-tree-dirty':('working tree has uncommitted changes (apply refuses them even with --dry-run); commit the work in '
+                          'progress, run git worktree add -b <branch> <path> <commit>, and prepare the plan in that worktree'),
+    'control-directory-must-not-be-tracked':f'the {CONTROL} control directory is tracked; git rm -r --cached {CONTROL} and commit',
+    IN_PLACE:('run apply from a linked worktree (git worktree add -b <branch> <path>) or pass --allow-in-place '
+              'on a clean ordinary checkout'),
+}
+
+
+def blocking_reasons(snap: dict[str, Any]) -> list[str]:
+    checks={'git-initialization-required':not snap['git'],'working-tree-dirty':snap['dirty'],
+            'control-directory-must-not-be-tracked':snap['tracked_control'],IN_PLACE:not snap['worktree']}
+    return [code for code,blocked in checks.items() if blocked]
+
+
 def doctor(repo: str | Path) -> dict[str, Any]:
     snap=snapshot(repo)
-    blockers=[]
-    if not snap['git']: blockers.append('git-initialization-required')
-    if snap['dirty']: blockers.append('working-tree-dirty')
-    if snap['tracked_control']: blockers.append('control-directory-must-not-be-tracked')
-    if not snap['worktree']: blockers.append('isolated-worktree-or-explicit-in-place-permission-required')
+    blockers=blocking_reasons(snap)
     version=_git(Path(snap['root']), '--version', required=True).stdout.decode().strip()
     root=Path(snap['root'])
     return {'repository':{'root':snap['root'],'head':snap['head'],'branch':snap['branch'],
@@ -259,7 +366,8 @@ def doctor(repo: str | Path) -> dict[str, Any]:
             'runtime':{'python':sys.version.split()[0],'git':version},
             'documentation':{'root_agents':(root/'AGENTS.md').is_file(),
                              'governance_manifest':(root/'docs/governance.yaml').is_file()},
-            'capabilities':{'can_plan':True,'can_apply':not blockers,'blocking_reasons':blockers}}
+            'capabilities':{'can_plan':True,'can_apply':not blockers,'blocking_reasons':blockers,
+                            'remediation':{code:REMEDIATION[code] for code in blockers}}}
 
 
 def _writable(root: Path, rel: str) -> Path:
@@ -279,12 +387,18 @@ def _compile_changes(root: Path, proposal: dict[str, Any]) -> list[dict[str, Any
     def put(rel, content, mode=None):
         path=_writable(root,rel)
         if rel in writes: raise ValueError(f'duplicate write: {rel}')
-        writes[rel]=(content, stat.S_IMODE(path.stat().st_mode) if path.exists() else (mode or 0o644))
+        writes[rel]=(content, _git_mode(stat.S_IMODE(path.stat().st_mode)) if path.exists() else (mode or 0o644))
+    tiers,source=_manifest_tiers(root,proposal)
+    def refuse_history(rel, action):
+        pattern=_matching(rel,tiers['historical'])
+        if pattern:
+            raise ValueError(f'{rel} matches historical tier {pattern!r} ({source}); first-pass migration cannot {action} it: '
+                             f'historical bodies keep their content, so use demote_to_historical, or declare a different '
+                             f'tiers.historical in {MANIFEST} in the same plan')
     for category in ('create','edit','demote_to_historical'):
         for item in proposal['files'][category]:
             path=_writable(root,item['path'])
-            if category=='edit' and item['path'].startswith(('docs/superpowers/','docs/plans/','docs/reports/','docs/handoffs/','docs/releases/','docs/postmortem')):
-                raise ValueError('historical bodies are preserved; use metadata-only demotion')
+            if category=='edit': refuse_history(item['path'],'edit')
             if category=='create' and path.exists(): raise ValueError(f'create target exists: {item["path"]}')
             if category!='create' and not path.exists(): raise ValueError(f'edit target missing: {item["path"]}')
             if category=='demote_to_historical':
@@ -294,14 +408,13 @@ def _compile_changes(root: Path, proposal: dict[str, Any]) -> list[dict[str, Any
             put(item['path'],item['content'])
     for item in proposal['files']['move']:
         source=_writable(root,item['from']); target=_writable(root,item['to'])
-        if item['from'].startswith(('docs/superpowers/','docs/plans/','docs/reports/','docs/handoffs/','docs/releases/','docs/postmortem')):
-            raise ValueError('first-pass migration preserves historical paths')
+        refuse_history(item['from'],'move')
         if not source.exists() or target.exists(): raise ValueError('move requires existing source and absent target')
         content=source.read_text(encoding='utf-8')
         if 'content' in item and item['content']!=content: raise ValueError('move content cannot silently rewrite source')
         item['content']=content
         put(item['from'],None)
-        put(item['to'],content,stat.S_IMODE(source.stat().st_mode))
+        put(item['to'],content,_git_mode(stat.S_IMODE(source.stat().st_mode)))
     scope=proposal['write_scope']
     if len(scope)!=len(set(scope)) or set(scope)!=set(writes):
         raise ValueError('write_scope must exactly enumerate all changed paths, including both sides of moves')
@@ -319,31 +432,38 @@ def _compile_changes(root: Path, proposal: dict[str, Any]) -> list[dict[str, Any
 
 def _validate_owners(root: Path, plan: dict[str, Any]) -> None:
     ids=set(); owners=set()
-    after=dict(plan['repository_snapshot']['files'])
+    before=plan['repository_snapshot']['files']
+    after=dict(before)
     for c in plan['changes']:
-        if c['content'] is None: after.pop(c['path'],None)
-        else: after[c['path']]=c['after_digest']
+        after[c['path']]=c['after_digest']
+    tiers,source=_manifest_tiers(root,plan)
     for owner in plan['authority_candidates']:
         path=owner['path']; safe_path(root,path)
-        if path not in after or not path.endswith('.md'): raise ValueError(f'owner lacks an existing or planned document: {path}')
-        if path.startswith(('docs/superpowers/','.agents/notes/archived/')):
-            raise ValueError('historical material cannot be the proposed current owner')
+        if after.get(path) is None or not path.endswith('.md'): raise ValueError(f'owner lacks an existing or planned document: {path}')
+        pattern=_matching(path,tiers['historical'])
+        if pattern or path.startswith('.agents/notes/archived/'):
+            raise ValueError(f'{path} is historical material ({pattern or "frozen Agent Note archive"!r}, {source}) and cannot be '
+                             f'the proposed current owner; choose a current-tier path or change tiers.historical in the same plan')
         if owner['id'] in ids or path in owners: raise ValueError('candidate ids and owner paths must be unique')
         ids.add(owner['id']); owners.add(path)
         for rel in owner['evidence']:
             if rel.startswith('decision:'):
                 if rel[9:] not in plan['user_decisions']: raise ValueError('user-decision evidence was not recorded')
             else:
-                evidence=safe_path(root,rel)
-                if not evidence.is_file(): raise ValueError(f'missing candidate evidence: {rel}')
+                safe_path(root,rel)
+                if before.get(rel) is None:
+                    raise ValueError(f'evidence {rel} is not a Git-visible file (missing or ignored); cite a tracked or '
+                                     f'non-ignored file, or the source that generates it, so the review can bind it')
         for rel in owner['current_sources']:
             safe_path(root,rel)
-            if rel not in plan['repository_snapshot']['files']: raise ValueError(f'missing current source: {rel}')
+            if before.get(rel) is None:
+                raise ValueError(f'current source {rel} is not a Git-visible file (missing or ignored); cite a tracked or '
+                                 f'non-ignored document so the review can bind it')
     for repair in plan['link_repairs']:
         if repair['path'] not in plan['write_scope']: raise ValueError('link repair must have a reviewed write')
         for target in repair['targets']:
             safe_path(root,target)
-            if target not in after: raise ValueError(f'link repair target missing: {target}')
+            if after.get(target) is None: raise ValueError(f'link repair target missing: {target}')
 
 
 def prepare_plan(repo: str | Path, proposal: dict[str, Any] | None=None, *, profile='generic', mode='migrate') -> dict[str, Any]:
@@ -356,25 +476,46 @@ def prepare_plan(repo: str | Path, proposal: dict[str, Any] | None=None, *, prof
     if proposal is not None:
         validate_schema('proposal',proposal)
         base.update(copy.deepcopy(proposal))
-    plan={**base,'schema_version':1,'skill_version':VERSION,'mode':mode,'profile':profile,
+    plan={**base,'schema_version':2,'skill_version':VERSION,'mode':mode,'profile':profile,
           'state':'draft' if proposal is None else 'prepared','repository_snapshot':snap,
-          'changes':[],'plan_digest':None}
+          'changes':[],'content_digest':None,'plan_digest':None}
+    current=_manifest_tiers(root,plan)[0]['current']
+    plan['repository_snapshot']={**snap,'current_patterns':current,
+                                 'current_inventory':sorted(rel for rel in snap['files'] if _matching(rel,current))}
     if proposal is not None:
         if not plan['authority_candidates']: raise ValueError('prepared plan needs model-authored authority candidates')
         plan['changes']=_compile_changes(root,plan)
         if not plan['changes']: raise ValueError('prepared plan has no writes; use audit for read-only work')
         if mode == 'upgrade' and any(c['path'] not in GENERATED for c in plan['changes']):
             raise ValueError('upgrade may refresh only the named generated verifier and workflow')
+        # Bind only what the plan reads or writes, so unrelated commits and files leave it valid.
+        binding=_binding(snap,plan,current)
+        plan['repository_snapshot']={**snap,**binding,'digest':_binding_digest(snap['root'],binding)}
         _validate_owners(root,plan)
+        plan['content_digest']=_content_digest(plan)
         plan['plan_digest']=digest({k:v for k,v in plan.items() if k!='plan_digest'})
     validate_schema('migration-plan',plan)
     return plan
 
 
+def _require_schema_version(kind: str, value: dict[str, Any]) -> None:
+    if value.get('schema_version')!=2:
+        raise ValueError(f'{kind} schema_version {value.get("schema_version")!r} is not supported by skill {VERSION} (expects 2); '
+                         'prepare and review the plan again with the installed skill')
+
+
 def validate_plan(plan: dict[str, Any]) -> None:
+    _require_schema_version('plan',plan)
     validate_schema('migration-plan',plan)
-    if plan['state']!='prepared' or plan['plan_digest']!=digest({k:v for k,v in plan.items() if k!='plan_digest'}):
-        raise ValueError('plan is draft, unsealed or changed since preparation')
+    if (plan['state']!='prepared' or plan['plan_digest']!=digest({k:v for k,v in plan.items() if k!='plan_digest'})
+            or plan['content_digest']!=_content_digest(plan)):
+        raise ValueError('plan is draft, unsealed or changed since preparation; run plan --proposal again')
+    snap=plan['repository_snapshot']
+    # The review covers the binding maps, not the stored digest; both must still be what preparation derives.
+    if snap['digest']!=_binding_digest(snap['root'],snap):
+        raise ValueError('repository_snapshot.digest does not match its binding; the plan was edited after preparation, prepare it again')
+    if _bind(snap['files'],_bound_paths(plan))!=snap['files'] or snap['current_inventory']!=sorted(set(snap['current_inventory'])):
+        raise ValueError("repository_snapshot is not the binding of the plan's own paths; prepare the plan again")
     if not plan['authority_candidates'] or not plan['changes']: raise ValueError('empty prepared plan')
     root=Path(plan['repository_snapshot']['root'])
     if plan['mode'] == 'upgrade' and any(c['path'] not in GENERATED for c in plan['changes']):
@@ -396,13 +537,15 @@ def validate_plan(plan: dict[str, Any]) -> None:
         if compiled[change['path']]!=change['content']: raise ValueError('compiled content differs from proposal')
         actual=_file_digest(change['content'].encode(),change['mode']) if change['content'] is not None else None
         if change['after_digest']!=actual: raise ValueError('compiled output digest mismatch')
-        if change['before_digest']!=plan['repository_snapshot']['files'].get(change['path']):
+        if change['before_digest']!=plan['repository_snapshot']['files'].get(change['path'],'unbound'):
             raise ValueError('compiled input digest mismatch')
 
 
 def _review_assurance(plan, review, allow_self_review=False):
+    _require_schema_version('review',review)
     validate_schema('review-result',review)
-    if review['plan_digest']!=plan['plan_digest']: raise ValueError('review belongs to another plan')
+    if review['content_digest']!=plan['content_digest']:
+        raise ValueError('review belongs to other plan content (content_digest differs); request a review of this plan\'s review package')
     if review['verdict']!='approve' or any(review[k] for k in ('missing_domains','over_split_owners','under_split_owners','authority_conflicts','required_changes')):
         raise ValueError('review is not an unconditional approval; revise and request a fresh review')
     reviewer=review['reviewer']
@@ -417,7 +560,10 @@ def _review_assurance(plan, review, allow_self_review=False):
 def review_package(repo, plan):
     validate_plan(plan)
     current=snapshot(repo)
-    if current['digest']!=plan['repository_snapshot']['digest']: raise ValueError('plan snapshot is stale')
+    if current['root']!=plan['repository_snapshot']['root']: raise ValueError('plan belongs to another checkout')
+    before=plan['repository_snapshot']
+    changes=_binding_changes(before,_binding(current,plan,before['current_patterns']))
+    if changes: raise _stale(changes)
     root=Path(current['root']); differences=[]
     for change in plan['changes']:
         path=root/change['path']
@@ -425,8 +571,10 @@ def review_package(repo, plan):
         after=change['content'] or ''
         differences.extend(difflib.unified_diff(before.splitlines(keepends=True),after.splitlines(keepends=True),
                                                 fromfile='a/'+change['path'],tofile='b/'+change['path']))
-    pack={'schema_version':1,'plan_digest':plan['plan_digest'],
-          'repository':{'root':current['root'],'head':current['head'],'snapshot_digest':current['digest']},
+    pack={'schema_version':2,'plan_digest':plan['plan_digest'],'content_digest':plan['content_digest'],
+          'repository':{'root':current['root'],'head':current['head'],'binding_digest':plan['repository_snapshot']['digest']},
+          'bound_paths':sorted(plan['repository_snapshot']['files']),
+          'current_inventory':plan['repository_snapshot']['current_inventory'],
           'author_context_id':plan['author_context_id'],'authority_candidates':plan['authority_candidates'],
           'operations':[{'kind':kind, **{k:v for k,v in item.items() if k!='content'}}
                         for kind in ('create','edit','move','demote_to_historical') for item in plan['files'][kind]],
@@ -458,22 +606,25 @@ def apply_plan(repo, plan, review, *, dry_run=False, allow_in_place=False, allow
     if plan['open_conflicts']: raise ValueError('unresolved authority conflicts; prepare a separate conflict-free scope')
     before=plan['repository_snapshot']; now=snapshot(repo); root=Path(now['root'])
     if now['root']!=before['root']: raise ValueError('plan belongs to another checkout')
-    expected=copy.deepcopy(before)
+    patterns=before['current_patterns']
+    expected={'files':dict(before['files']),'current_patterns':patterns,'current_inventory':set(before['current_inventory'])}
     for c in plan['changes']:
-        if c['content'] is None: expected['files'].pop(c['path'],None)
-        else: expected['files'][c['path']]=c['after_digest']
-    expected['digest']=_snapshot_digest(expected)
-    result={'plan_digest':plan['plan_digest'],'review_assurance':assurance,
+        expected['files'][c['path']]=c['after_digest']
+        if c['content'] is None: expected['current_inventory'].discard(c['path'])
+        elif _matching(c['path'],patterns): expected['current_inventory'].add(c['path'])
+    expected['current_inventory']=sorted(expected['current_inventory'])
+    bound=_binding(now,plan,patterns)
+    result={'plan_digest':plan['plan_digest'],'content_digest':plan['content_digest'],'review_assurance':assurance,
             'review_authentication':'not provided; reviewer record is an attestation',
             'migration_complete':False,'remaining':['semantic verification','fresh-session assessment'],
-            'before_snapshot':before['digest'],'after_snapshot':expected['digest']}
-    if now['digest']==expected['digest']:
+            'before_snapshot':before['digest'],'after_snapshot':_binding_digest(before['root'],expected)}
+    if not _binding_changes(expected,bound):
         return {**result,'ok':True,'status':'already-applied','changed_files':[]}
-    if now['digest']!=before['digest']: raise ValueError('repository changed after plan preparation; replan and rereview')
-    if not now['git'] or now['dirty'] or before['dirty'] or now['tracked_control']:
-        raise ValueError('apply requires a clean Git repository with untracked control artifacts')
-    if not now['worktree'] and not allow_in_place:
-        raise ValueError('use an isolated worktree or explicitly allow in-place writes')
+    changes=_binding_changes(before,bound)
+    if changes: raise _stale(changes)
+    for code in blocking_reasons(now):
+        if code!=IN_PLACE or not allow_in_place: raise ValueError(REMEDIATION[code])
+    if before['dirty']: raise ValueError('plan was prepared in a dirty tree; commit the work in progress and prepare the plan again')
     _validate_owners(root,plan)
     backups={}; directories=set()
     for c in plan['changes']:
@@ -498,8 +649,7 @@ def apply_plan(repo, plan, review, *, dry_run=False, allow_in_place=False, allow
             if c['content'] is None: path.unlink()
             else: _replace_file(path,c['content'].encode(),c['mode'])
             changed.append(c['path'])
-        final=snapshot(root)
-        if final['digest']!=expected['digest']:
+        if _binding_changes(expected,_binding(snapshot(root),plan,patterns)):
             raise ValueError('unexpected filesystem change; rolling back only owned writes')
     except Exception:
         for rel in reversed(changed):

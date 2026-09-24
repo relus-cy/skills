@@ -6,10 +6,7 @@
   "authority": {
     "project_entry": "README.md",
     "agent_instructions": "AGENTS.md",
-    "documentation_standard": "docs/AGENTS.md",
-    "architecture": "docs/architecture.md",
-    "backlog": "docs/backlog.md",
-    "agent_notes": ".agents/notes/README.md"
+    "documentation_standard": "docs/AGENTS.md"
   },
   "tiers": {
     "current": [
@@ -24,7 +21,9 @@
       "docs/reference/**"
     ],
     "historical": [
-      "docs/superpowers/**",
+      "docs/plans/**",
+      "docs/reports/**",
+      "docs/handoffs/**",
       "docs/releases/**",
       "docs/postmortems/**",
       "docs/postmortem/**",
@@ -114,7 +113,7 @@
       "code": [
         "src/**",
         "app/**",
-        "engine/**",
+        "lib/**",
         "packages/**"
       ],
       "docs": [
@@ -130,7 +129,11 @@
       "current authority",
       "source of truth",
       "唯一权威",
-      "权威文档"
+      "权威文档",
+      "为权威",
+      "唯一入口",
+      "为准",
+      "定稿"
     ]
   }
 }
