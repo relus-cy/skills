@@ -18,7 +18,7 @@ import sys
 import tempfile
 from typing import Any
 
-VERSION = '0.2.0'
+VERSION = '0.3.0'
 SCHEMAS = Path(__file__).resolve().parents[1] / 'schemas'
 CONTROL = '.dsh-doc-audits'
 # `*` also matches this file, so Git and gitignore-aware search skip the whole directory.
@@ -370,9 +370,30 @@ def doctor(repo: str | Path) -> dict[str, Any]:
                             'remediation':{code:REMEDIATION[code] for code in blockers}}}
 
 
-def _writable(root: Path, rel: str) -> Path:
+def _glossary_write_paths(root: Path, plan: dict[str, Any] | None = None) -> set[str]:
+    # Import the same resolver used by inspection and verifier generation, including when
+    # this guard is loaded by file path rather than through a Python package.
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("dsh_repo_docs", Path(__file__).with_name("repo_docs.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    manifest = safe_path(root, MANIFEST)
+    configs = [read_json(manifest) if manifest.exists() else {}]
+    if plan:
+        configs.extend(json.loads(item['content']) for group in ('create', 'edit')
+                       for item in plan['files'][group] if item['path'] == MANIFEST)
+    paths = set()
+    for config in configs:
+        if not isinstance(config, dict):
+            raise ValueError('governance manifest must be an object')
+        paths.update(module._glossary_paths(config))
+    return paths
+
+
+def _writable(root: Path, rel: str, glossary_paths: set[str] | None = None) -> Path:
     path=safe_path(root,rel)
-    allowed=(rel in {'README.md','AGENTS.md','CONTEXT.md','docs/governance.yaml'} | GENERATED
+    if glossary_paths is None: glossary_paths = _glossary_write_paths(root)
+    allowed=(rel in {'README.md','AGENTS.md','docs/governance.yaml'} | GENERATED | glossary_paths
              or (rel.startswith('docs/') and rel.endswith('.md'))
              or (rel.startswith('.agents/notes/') and rel.endswith('.md')))
     if not allowed or rel.startswith('.agents/notes/archived/'):
@@ -383,9 +404,10 @@ def _writable(root: Path, rel: str) -> Path:
 
 
 def _compile_changes(root: Path, proposal: dict[str, Any]) -> list[dict[str, Any]]:
+    glossary_paths = _glossary_write_paths(root, proposal)
     writes: dict[str, tuple[str | None,int]]={}
     def put(rel, content, mode=None):
-        path=_writable(root,rel)
+        path=_writable(root,rel,glossary_paths)
         if rel in writes: raise ValueError(f'duplicate write: {rel}')
         writes[rel]=(content, _git_mode(stat.S_IMODE(path.stat().st_mode)) if path.exists() else (mode or 0o644))
     tiers,source=_manifest_tiers(root,proposal)
@@ -397,7 +419,7 @@ def _compile_changes(root: Path, proposal: dict[str, Any]) -> list[dict[str, Any
                              f'tiers.historical in {MANIFEST} in the same plan')
     for category in ('create','edit','demote_to_historical'):
         for item in proposal['files'][category]:
-            path=_writable(root,item['path'])
+            path=_writable(root,item['path'],glossary_paths)
             if category=='edit': refuse_history(item['path'],'edit')
             if category=='create' and path.exists(): raise ValueError(f'create target exists: {item["path"]}')
             if category!='create' and not path.exists(): raise ValueError(f'edit target missing: {item["path"]}')
@@ -407,7 +429,7 @@ def _compile_changes(root: Path, proposal: dict[str, Any]) -> list[dict[str, Any
                     raise ValueError('demotion must prepend status/owner metadata and preserve the original body')
             put(item['path'],item['content'])
     for item in proposal['files']['move']:
-        source=_writable(root,item['from']); target=_writable(root,item['to'])
+        source=_writable(root,item['from'],glossary_paths); target=_writable(root,item['to'],glossary_paths)
         refuse_history(item['from'],'move')
         if not source.exists() or target.exists(): raise ValueError('move requires existing source and absent target')
         content=source.read_text(encoding='utf-8')
@@ -504,6 +526,21 @@ def _require_schema_version(kind: str, value: dict[str, Any]) -> None:
                          'prepare and review the plan again with the installed skill')
 
 
+def _post_apply_binding(plan: dict[str, Any]) -> dict[str, Any]:
+    before = plan['repository_snapshot']
+    patterns = before['current_patterns']
+    expected = {'files': dict(before['files']), 'current_patterns': patterns,
+                'current_inventory': set(before['current_inventory'])}
+    for change in plan['changes']:
+        expected['files'][change['path']] = change['after_digest']
+        if change['content'] is None:
+            expected['current_inventory'].discard(change['path'])
+        elif _matching(change['path'], patterns):
+            expected['current_inventory'].add(change['path'])
+    expected['current_inventory'] = sorted(expected['current_inventory'])
+    return expected
+
+
 def validate_plan(plan: dict[str, Any]) -> None:
     _require_schema_version('plan',plan)
     validate_schema('migration-plan',plan)
@@ -520,6 +557,7 @@ def validate_plan(plan: dict[str, Any]) -> None:
     root=Path(plan['repository_snapshot']['root'])
     if plan['mode'] == 'upgrade' and any(c['path'] not in GENERATED for c in plan['changes']):
         raise ValueError('upgrade scope includes project-owned content')
+    glossary_paths = _glossary_write_paths(root, plan)
     compiled={}
     for group in ('create','edit','demote_to_historical'):
         for item in plan['files'][group]:
@@ -533,12 +571,21 @@ def validate_plan(plan: dict[str, Any]) -> None:
     if len(paths)!=len(set(paths)) or set(paths)!=set(plan['write_scope']) or set(paths)!=set(compiled):
         raise ValueError('compiled changes and write scope differ')
     for change in plan['changes']:
-        _writable(root,change['path'])
         if compiled[change['path']]!=change['content']: raise ValueError('compiled content differs from proposal')
         actual=_file_digest(change['content'].encode(),change['mode']) if change['content'] is not None else None
         if change['after_digest']!=actual: raise ValueError('compiled output digest mismatch')
         if change['before_digest']!=plan['repository_snapshot']['files'].get(change['path'],'unbound'):
             raise ValueError('compiled input digest mismatch')
+    # A completed relocation has replaced the manifest that authorized its old path.
+    # Only the exact post-apply binding permits a read-only repeat without that policy;
+    # any partial or changed state still undergoes the normal write boundary checks.
+    already_applied = not _binding_changes(_post_apply_binding(plan),
+                                           _binding(snapshot(root), plan, snap['current_patterns']))
+    for change in plan['changes']:
+        # Even a no-op retains canonical-path, link and non-document protections.
+        retired_glossary = ({change['path']} if already_applied and change['path'].endswith('.md')
+                            and not any(part in {'.github', CONTROL} for part in change['path'].split('/')) else set())
+        _writable(root, change['path'], glossary_paths | retired_glossary)
 
 
 def _review_assurance(plan, review, allow_self_review=False):
@@ -607,12 +654,7 @@ def apply_plan(repo, plan, review, *, dry_run=False, allow_in_place=False, allow
     before=plan['repository_snapshot']; now=snapshot(repo); root=Path(now['root'])
     if now['root']!=before['root']: raise ValueError('plan belongs to another checkout')
     patterns=before['current_patterns']
-    expected={'files':dict(before['files']),'current_patterns':patterns,'current_inventory':set(before['current_inventory'])}
-    for c in plan['changes']:
-        expected['files'][c['path']]=c['after_digest']
-        if c['content'] is None: expected['current_inventory'].discard(c['path'])
-        elif _matching(c['path'],patterns): expected['current_inventory'].add(c['path'])
-    expected['current_inventory']=sorted(expected['current_inventory'])
+    expected=_post_apply_binding(plan)
     bound=_binding(now,plan,patterns)
     result={'plan_digest':plan['plan_digest'],'content_digest':plan['content_digest'],'review_assurance':assurance,
             'review_authentication':'not provided; reviewer record is an attestation',
@@ -626,9 +668,10 @@ def apply_plan(repo, plan, review, *, dry_run=False, allow_in_place=False, allow
         if code!=IN_PLACE or not allow_in_place: raise ValueError(REMEDIATION[code])
     if before['dirty']: raise ValueError('plan was prepared in a dirty tree; commit the work in progress and prepare the plan again')
     _validate_owners(root,plan)
+    glossary_paths = _glossary_write_paths(root, plan)
     backups={}; directories=set()
     for c in plan['changes']:
-        path=_writable(root,c['path'])
+        path=_writable(root,c['path'],glossary_paths)
         backups[c['path']]=(path.read_bytes(),stat.S_IMODE(path.stat().st_mode)) if path.exists() else None
         folder=path.parent
         while folder!=root and not folder.exists(): directories.add(folder); folder=folder.parent
@@ -645,7 +688,7 @@ def apply_plan(repo, plan, review, *, dry_run=False, allow_in_place=False, allow
     try:
         if snapshot(root)['digest']!=now['digest']: raise ValueError('repository changed during preflight')
         for c in plan['changes']:
-            path=_writable(root,c['path']); path.parent.mkdir(parents=True,exist_ok=True)
+            path=_writable(root,c['path'],glossary_paths); path.parent.mkdir(parents=True,exist_ok=True)
             if c['content'] is None: path.unlink()
             else: _replace_file(path,c['content'].encode(),c['mode'])
             changed.append(c['path'])

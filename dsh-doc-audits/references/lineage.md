@@ -1,4 +1,4 @@
-# DSH Lineage
+# Sources and adaptations
 
 ## Retained governance ideas
 
@@ -41,6 +41,12 @@ The portable skill does not require:
 - a bootstrap core with tiers created when content first needs them (DSH repositories carry the full structure).
 
 DeepSeek Harness is MIT-licensed. Repository attribution is recorded in `THIRD_PARTY_NOTICES.md`.
+
+## Matt Pocock workflow compatibility
+
+The optional layout reference is [mattpocock/skills at commit `d81f3a1`](https://github.com/mattpocock/skills/tree/d81f3a183412e71a5b1e84ca21bc1a35eea03a60), the installation snapshot checked on 2026-10-01. Its [domain-modeling skill](https://github.com/mattpocock/skills/blob/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/skills/engineering/domain-modeling/SKILL.md) supplies the `GLOSSARY.md` and ADR conventions; [setup-matt-pocock-skills](https://github.com/mattpocock/skills/blob/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/skills/engineering/setup-matt-pocock-skills/SKILL.md) supplies the agent-guide and skill-routing layout. The [license at that commit](https://github.com/mattpocock/skills/blob/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/LICENSE) is MIT, copyright 2026 Matt Pocock.
+
+This bundle contains original compatibility rules, not copied Matt skill implementations, templates or workflow instructions. Matt is an optional workflow reference; DSH remains the documentation-governance method. The [repository contract](repository-contract.md#matt-skills-coexistence) owns the shared-file boundary and [sync](workflow.md#sync) owns durable write-back from external trackers. No Matt skill or tracker integration is installed or invoked by dsh.
 
 ## Additional workflow reference
 

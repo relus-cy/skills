@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "skill_version": "0.2.0",
+  "skill_version": "0.3.0",
   "profile": "skill-repository",
   "project": "skills",
   "authority": {

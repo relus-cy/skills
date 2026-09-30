@@ -57,7 +57,7 @@ This is a shape example, not an approval to copy. `revise` or `block`, a mismatc
 
 ## Write boundary
 
-Application accepts root `README.md`, `AGENTS.md`, `CONTEXT.md`, Markdown under `docs/` and active `.agents/notes/`, `docs/governance.yaml`, `scripts/verify_docs.py`, and `.github/workflows/docs-governance.yml`. It rejects product files, Git metadata, traversal, symlink paths, hardlinked targets, unsupported file types and frozen archives. The default narrow scope is deliberate; module-local documentation outside it needs a separately reviewed scope extension.
+Application accepts root `README.md`, `AGENTS.md`, the glossary paths resolved by the [repository contract](repository-contract.md#glossary-authority), Markdown under `docs/` and active `.agents/notes/`, `docs/governance.yaml`, `scripts/verify_docs.py`, and `.github/workflows/docs-governance.yml`. It rejects product files, Git metadata, traversal, symlink paths, hardlinked targets, unsupported file types and frozen archives. The default narrow scope is deliberate; other module-local documentation needs a separately reviewed scope extension.
 
 Paths matched by the manifest's `tiers.historical` cannot be rewritten, moved or proposed as owners by first-pass migration. Without a manifest the bundled template's tiers apply, and a plan that writes a manifest is checked against both. Metadata-only demotion keeps their body. All targets are checked before writes. Clean ordinary checkouts require `--allow-in-place`; linked worktrees do not. Neither mode permits dirty product work; `doctor` pairs each blocker with its remediation. Written files get mode 0644, or 0755 when the original was executable.
 

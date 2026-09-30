@@ -15,13 +15,15 @@ Each durable fact has one current owner. Other pages summarize briefly and link 
 | `.agents/notes/` | Durable why, alternatives, consequences, and lifecycle | Current user instructions or implementation plans | A decision is cross-module, hard to reverse, or argued a second time |
 | Historical tiers | Plans, reports, handoffs, releases, postmortems | Current authority | A planning, reporting or release workflow writes into `docs/` |
 
-A tier exists only once it has content; do not create empty pages. Creating one needs no manifest edit: `docs/governance.yaml` already lists every tier, its budget and its code mappings. Verifier warnings such as `documentation-untiered`, `doc-owner-missing` and an exceeded budget mean content has outgrown its current home.
+A tier exists only once it has content; do not create empty pages. `docs/governance.yaml` lists the default tiers; register custom paths there. Verifier warnings such as `documentation-untiered`, `doc-owner-missing` and an exceeded budget mean content has outgrown its current home.
+
+When Matt skills manage the workflow, preserve `GLOSSARY.md`, `docs/adr/`, `docs/agents/`, and root `AGENTS.md`'s `Agent skills` block. The glossary owns terminology, ADRs own decision rationale, and agent guides own workflow instructions. Set `authority.glossary` to the chosen Markdown glossary and keep these owners in `tiers.current`. ADRs may replace Agent Notes without adopting their lifecycle; keep the configured Notes root separate. Use the project's existing owners before adding another page for the same fact. An external issue tracker may own specs, tickets and deferred work, so a local backlog is optional.
 
 ## Writing rules
 
 - Describe current behavior in ordinary docs. Use Git history, Agent Notes, releases, plans, reports, handoffs, and postmortems for history.
 - Verify safe, authorized commands in isolation; mark dangerous or unavailable operations unverified with an owner. Verify defaults, paths, APIs, and failure behavior from the current checkout. Mark anything unverified and name its verification owner.
-- When a plan, spec or report ships, write its durable conclusions (behavior, contracts, defaults, decisions) into the current owner or Agent Note in the same change. After write-back the plan is expiring scratch: delete it, or keep it only under a `tiers.historical` folder, which is never current authority.
+- When a plan, spec or report ships, or an external spec/ticket closes with durable conclusions, write behavior, contracts and defaults into current owners and rationale into the chosen decision home in the same change. After write-back a local plan is expiring scratch: delete it, or keep it only under a `tiers.historical` folder, which is never current authority. The local verifier does not inspect external tracker contents or closure state; record unavailable checks with an owner.
 - Put detail at the nearest owner. Higher-level pages link down instead of repeating it.
 - Move a document and repair every inbound link in the same change.
 - Keep generated outputs read-only; edit their source or generator.

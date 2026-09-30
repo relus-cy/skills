@@ -41,4 +41,4 @@ Plans and reviewer records are untrusted input until schema, path and digest che
 
 ## Extension policy
 
-Add a deterministic check only when a concrete failure justifies it. Keep semantic rules short and generic. Project-specific migration decisions stay in the target. No fixed WebApp tree, automatic hooks or mandatory collection of external frameworks is imposed.
+Add a deterministic check only when a concrete failure justifies it. Keep semantic rules short and generic. Project-specific migration decisions stay in the target. No fixed WebApp tree, automatic hooks or mandatory collection of external frameworks is imposed. Matt-style domain and workflow owners coexist through the [repository contract](../dsh-doc-audits/references/repository-contract.md#matt-skills-coexistence); external workflow state stays outside the local verifier. The [compatibility decision](../.agents/notes/implemented/process/2026-10-01-matt-workflow-coexistence.md) records this boundary.

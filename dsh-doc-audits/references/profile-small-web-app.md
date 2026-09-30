@@ -10,7 +10,9 @@ Use for a single-repository web application with one API or server, one browser 
 - `docs/subsystems/`: data acquisition, core domain calculation, display/feed layer, authentication, background work, or other cohesive capabilities.
 - `docs/runbooks/`: local development, deployment, health checks, backup/recovery, data repair, public release.
 - `docs/reference/`: HTTP contracts, environment variables, data formats, cache semantics, limits.
-- `CONTEXT.md`: optional domain glossary when recurring project-specific terms would otherwise drift.
+- The optional `authority.glossary` owner: domain terminology when recurring project-specific terms would otherwise drift. Use the project's existing path; `GLOSSARY.md` fits Matt's domain-modeling workflow. See [glossary resolution and Matt layout](repository-contract.md#glossary-authority).
+
+For Matt-managed repositories, `docs/adr/` holds decision rationale and `docs/agents/` holds workflow guides. Register them as current tiers and reuse their existing responsibilities before adding owners. The repository contract owns the exact [coexistence boundary](repository-contract.md#matt-skills-coexistence).
 
 ## Suggested impact posture
 

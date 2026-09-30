@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TEMPLATE_ROOT = SKILL_ROOT / "assets" / "repo-governance"
 
@@ -118,6 +118,34 @@ def _contains_token(repo: Path, paths: Iterable[str], tokens: Iterable[str]) -> 
     return False
 
 
+def _glossary_paths(config: dict[str, Any]) -> list[str]:
+    """One explicit Markdown owner, or both conventional candidates; never infer authority."""
+    authority = config.get("authority", {})
+    if not isinstance(authority, dict):
+        raise ValueError("authority must be an object")
+    if "glossary" not in authority:
+        return ["GLOSSARY.md", "CONTEXT.md"]
+    value = authority["glossary"]
+    if (not isinstance(value, str) or not value.endswith(".md")
+            or value.startswith(("/", "~")) or "\\" in value or ":" in value
+            or any(ord(c) < 32 for c in value) or any(c in value for c in "*?[]")
+            or any(part in {"", ".", "..", ".git", ".github", ".dsh-doc-audits"} for part in value.split("/"))):
+        raise ValueError("authority.glossary must be a canonical relative Markdown file path outside Git/control metadata")
+    return [value]
+
+
+def _repository_glossary_paths(root: Path) -> list[str]:
+    manifest = root / "docs/governance.yaml"
+    try:
+        config = json.loads(manifest.read_text(encoding="utf-8")) if manifest.exists() else {}
+    except (OSError, ValueError):
+        # Inspection can still report the repository; never guess fallback owners from bad policy.
+        return []
+    if not isinstance(config, dict):
+        raise ValueError("governance manifest must be an object")
+    return _glossary_paths(config)
+
+
 def inspect_repository(repo: str | os.PathLike[str] | Path) -> dict[str, Any]:
     root = _normalize_repo(repo)
     files = _relative_files(root)
@@ -143,7 +171,7 @@ def inspect_repository(repo: str | os.PathLike[str] | Path) -> dict[str, Any]:
     historical = _historical_surfaces(root, files)
     doc_surfaces = [
         p
-        for p in ("README.md", "AGENTS.md", "CONTEXT.md", "docs")
+        for p in ("README.md", "AGENTS.md", *_repository_glossary_paths(root), "docs")
         if (root / p).exists()
     ]
 
@@ -201,7 +229,9 @@ def build_plan(
     targets = [path.relative_to(DEFAULT_TEMPLATE_ROOT).as_posix() for path in _template_targets(DEFAULT_TEMPLATE_ROOT, root)]
     preserve = sorted(path for path in targets if path in existing)
     # Root entry points are project-owned and are preserved even though templates do not replace them.
-    preserve.extend(path for path in ("README.md", "AGENTS.md", "CONTEXT.md") if path in existing and path not in preserve)
+    glossary_paths = _repository_glossary_paths(root)
+    terminology = [path for path in glossary_paths if path in existing]
+    preserve.extend(path for path in ("README.md", "AGENTS.md", *glossary_paths) if path in existing and path not in preserve)
     create = sorted(path for path in targets if path not in existing)
 
     return {
@@ -219,7 +249,8 @@ def build_plan(
             "agent_instructions": "AGENTS.md",
             "architecture": "docs/architecture.md",
             "backlog": "docs/backlog.md",
-            "terminology": "CONTEXT.md" if (root / "CONTEXT.md").exists() else None,
+            "terminology": terminology[0] if len(terminology) == 1 else None,
+            **({"terminology_candidates": terminology} if len(terminology) > 1 else {}),
         },
         "safety": {
             "overwrite_existing": False,
@@ -357,6 +388,10 @@ def _manifest_issues(data: Any) -> list[str]:
     authority = data.get("authority")
     if not isinstance(authority, dict) or not authority or not all(relative(v) for v in authority.values()):
         issues.append("authority must be a nonempty map of names to relative file paths")
+    try:
+        _glossary_paths(data)
+    except ValueError as exc:
+        issues.append(str(exc))
     tiers = data.get("tiers")
     if not isinstance(tiers, dict) or not strings(tiers.get("current")) or not strings(tiers.get("historical")):
         issues.append("tiers must contain current and historical string arrays")

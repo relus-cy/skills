@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.3.0 — 2026-10-01
+
+- Resolve optional `authority.glossary` consistently across inspection, planning and reviewed writes; recognize `GLOSSARY.md` and legacy `CONTEXT.md` when unset, and leave dual-name authority conflicts for explicit resolution.
+- Support Matt workflow coexistence: template tiers cover ADRs and agent guides, existing owners and the `Agent skills` block stay preserved, and external tracker close-out writes durable conclusions back to repository owners. ADRs use the existing Agent Notes opt-out.
+- Record Matt source provenance and the boundary between compatibility and imported implementation.
+
 - Prepared plans bind the checkout root, the paths they read or write and the names of current-tier documents, so unrelated commits and new historical documents no longer invalidate them. Reviews bind a location-independent `content_digest`, and an unchanged proposal replanned in another worktree keeps its review. Plan, review-package and review-result schemas move to version 2.
 - Guard errors name changed paths and the next command; `doctor` adds a `remediation` map. Evidence must be Git-visible, and fingerprints ignore non-executable mode bits.
 - The plan guard reads protected historical paths from the manifest's `tiers.historical`. Template defaults, historical-surface inspection and impact mappings are now project-neutral.

@@ -20,6 +20,8 @@ Normal audit is read-only. Prepared plans bind the checkout root and the exact b
 
 Python 3.11+ and Git. JSON-compatible YAML remains the manifest encoding. Control JSON schemas reject missing and unexpected fields. Plan, review-package and review-result schemas are at version 2; version 1 plans and reviews must be prepared and reviewed again. Existing 0.1.0 manifests remain valid when they provide the original required fields with valid nested types. `exclude` is optional. Incomplete scaffolding can pass a structural bootstrap check with warnings and cannot pass completion.
 
+Version 0.3.0 supports optional `authority.glossary` and Matt-style repository owners without adopting an external ticket workflow. The [repository contract](../../dsh-doc-audits/references/repository-contract.md#glossary-authority) owns glossary fallback, tier registration, ADR opt-out and tracker boundaries. Existing `CONTEXT.md` repositories remain supported. External tracker close-out is an agent sync responsibility, not a local-verifier guarantee.
+
 ## Distribution
 
 Copy or sync the whole `dsh-doc-audits/` directory, including scripts, schemas and references. A target's standalone verifier does not need that directory. The maintained source, templates and local generated verifier must remain consistent.

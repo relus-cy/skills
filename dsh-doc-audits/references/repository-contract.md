@@ -14,7 +14,7 @@ scripts/verify_docs.py
 .github/workflows/docs-governance.yml   # only if .github/workflows/ exists
 ```
 
-Every other tier is created when it first has content, as the table in the installed `docs/AGENTS.md` assigns; `assets/skeletons/` holds a starting page for each. The manifest already lists all tiers, so creating one never needs a manifest edit. Existing project-owned entry pages are preserved during brownfield bootstrap.
+Other tiers are created when they first have content, as the table in the installed `docs/AGENTS.md` assigns; `assets/skeletons/` holds starting pages. The template manifest lists the default tiers; custom paths need registration. Existing project-owned entry pages are preserved during brownfield bootstrap.
 
 ## `docs/governance.yaml`
 
@@ -34,9 +34,32 @@ Optional `exclude`: paths omitted from corpus scans, such as test fixtures, gene
 
 Optional metadata such as `skill_version`, `profile`, and `project` supports upgrades and reporting.
 
+### Glossary authority
+
+Optional `authority.glossary` names the repository-relative Markdown file that owns domain terminology, for example `GLOSSARY.md` or `docs/reference/domain.md`. Register that path under `tiers.current` as well. Inspection, planning and the reviewed write boundary use this same setting. An explicit value takes precedence over conventional filenames; it does not authorize arbitrary product-file writes or bypass path, link or historical protections.
+
+Without this setting, both root `GLOSSARY.md` and legacy `CONTEXT.md` are recognized. If both exist, preserve both and resolve which owns terminology before semantic edits; filename order is not an authority decision. Configuring a glossary neither creates nor renames a file. Missing named authorities produce `authority-missing` errors; declare the path when its document exists or is created in the same reviewed change.
+
 ### Agent Notes opt-out
 
-The `agent_notes` block is always required, but nothing else about Agent Notes is. A repository whose policy forbids decision records keeps the block and never creates `.agents/notes/`; the verifier checks Notes only where that directory exists. Name the Markdown home for decision rationale, such as `docs/decisions/`, in `docs/AGENTS.md` and list it under `tiers.current`. The fresh-session assessment must still answer the `decision` topic from a repository Markdown page, so rationale kept only in PRs, or nowhere, fails completion.
+The `agent_notes` block is always required, but using Agent Notes is optional. A repository choosing another decision format keeps the block and need not create `.agents/notes/`; the verifier checks Notes only under the configured Notes root. Name the Markdown home for decision rationale, such as `docs/adr/` or `docs/decisions/`, in `docs/AGENTS.md` and list it under `tiers.current`. Keep the Notes root separate from ADRs to avoid applying the Notes lifecycle and headings to another format. The fresh-session assessment must still answer the `decision` topic from a repository Markdown page, so rationale kept only in PRs, or nowhere, fails completion.
+
+### Matt skills coexistence
+
+When the project uses Matt Pocock's workflow, preserve its `GLOSSARY.md`, `docs/adr/NNNN-*.md`, `docs/agents/*.md`, and root `AGENTS.md`'s `## Agent skills` block as project-owned content. Matt's skills own workflow and domain language; dsh owns current-document placement, synchronization and checks. Give each fact one owner and link to the glossary or ADR instead of copying it into another dsh page. Inspect existing `docs/agents/` responsibilities before proposing new subsystem or runbook owners.
+
+Merge these entries into the project's existing manifest; do not replace its other authorities or tiers:
+
+```json
+{
+  "authority": {"glossary": "GLOSSARY.md"},
+  "tiers": {"current": ["GLOSSARY.md", "docs/adr/**", "docs/agents/**"]}
+}
+```
+
+This is a partial example, not a complete manifest. New bootstrap templates already cover these current paths and `CONTEXT.md`; existing repositories add the entries explicitly. ADR rationale is retrievable current documentation, not a replacement for the current behavior contract. Superseded decisions retain their status and successor links; the semantic reviewer distinguishes active rationale from superseded history. The verifier checks local structure and links, not Matt's ADR format or status semantics.
+
+Specs and tickets may live in an external issue tracker. Its workflow, contents and closure state are outside the local verifier's scope. The agent's sync workflow owns the close-out check in [workflow](workflow.md#sync); no tracker client, credentials or additional skills are required by dsh.
 
 ## Hard and soft mappings
 
@@ -77,4 +100,4 @@ A missing or outside-repository link target is an error, except in files matched
 
 ## Upgrade boundary
 
-Files copied from `assets/repo-governance/` are generated scaffolding only at creation. After the project fills them with facts, they become project-owned except for clearly generated code such as the verifier and workflow. Upgrades must plan file ownership before overwriting anything.
+Files copied from `assets/repo-governance/` are generated scaffolding only at creation. After the project fills them with facts, they become project-owned except for clearly generated code such as the verifier and workflow. Upgrades must plan file ownership before overwriting anything. Glossaries, ADRs, agent guides and the `Agent skills` block remain outside generated-asset upgrades; changing manifest mappings is a separately scoped sync or migration.

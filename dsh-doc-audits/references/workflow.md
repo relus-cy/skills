@@ -25,6 +25,10 @@ Use the smallest workflow that covers the request. Directory names, document cou
 
 Use `impact --base <ref>` for committed branch differences. It uses Git's merge-base comparison; uncommitted changes are not covered. Read the relevant diff and owner documents. Narrow mappings to actual owners. A documentation touch cannot prove semantic correctness. The current checker has no no-impact-waiver parser; it cannot enforce a prose waiver in a PR. Revisit the mapping or use human review instead of making ritual edits.
 
+When a plan or spec ships, or an external spec/ticket closes with durable conclusions, write the resulting behavior, contracts and defaults into their current owners in the same change. Keep terminology in the glossary and decision rationale in the project's chosen decision home. A cancellation or duplicate ticket may have no durable change; record that conclusion in the sync report instead of inventing a document edit. Cite the tracker item for provenance without making it the only place a future repository reader can learn the current contract. If tracker access is unavailable, mark closure/content verification unverified and name its owner; a local verifier pass does not settle it.
+
 ## Upgrade
 
 `upgrade` is an agent workflow through plan/review/apply, not a separate automatic CLI command. Re-render or obtain current generated verifier/workflow bytes, compare with the target, then include only intended exact edits. Keep project-specific mappings and commands intact. Never use template force-overwrite to reset filled documentation.
+
+For a Matt layout, apply the [coexistence boundary](repository-contract.md#matt-skills-coexistence) during both bootstrap and upgrade. Preview an upgrade with `plan --mode upgrade --proposal <proposal>`, obtain the separate review, then run `apply --dry-run`; there is no `upgrade --dry-run` subcommand. Add missing glossary or tier mappings through a separately scoped sync or migration before verification.

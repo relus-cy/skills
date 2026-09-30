@@ -2,7 +2,7 @@
 
 Reusable Agent Skills maintained by `relus-cy`. Each skill is a top-level directory for simple discovery and synchronization.
 
-## dsh-doc-audits · 0.2.0
+## dsh-doc-audits · 0.3.0
 
 A thin, portable adaptation of DeepSeek Harness documentation governance: one current owner per durable fact; separate current behavior, decision rationale and historical work. A capable model decides how to split a project. Local tools validate evidence, reviewed plans, write boundaries and documentation readiness.
 

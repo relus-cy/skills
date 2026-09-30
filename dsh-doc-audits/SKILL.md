@@ -5,7 +5,7 @@ license: MIT
 compatibility: Python 3.11+ and Git for local checks; no model SDK or network required. Semantic review uses the host's available agent or a human reviewer.
 metadata:
   author: relus-cy
-  version: "0.2.0"
+  version: "0.3.0"
   lineage: deepseek-harness-dsh-doc
 ---
 
@@ -16,7 +16,7 @@ Keep one current owner per durable fact. Separate current behavior, decision rat
 ## Choose the smallest workflow
 
 - **audit**: read-only inspection and evidence-based findings. Run local checks, then review meaning. A green `verify` or `audit` is structure-only; it never compares a document with code.
-- **sync**: inspect the selected diff and update affected owners; use reviewed application for multi-file or contract-sensitive changes. Planning workflows that write plans or specs into `docs/` are the main drift source: when one ships, its durable conclusions go to the current owner in the same change.
+- **sync**: inspect the selected diff and update affected owners; use reviewed application for multi-file or contract-sensitive changes. When plans/specs ship or external tickets close with durable conclusions, write those conclusions back in the same change; [workflow](references/workflow.md#sync) owns close-out handling.
 - **bootstrap / migrate**: create a draft, investigate the repository, propose owners, review the exact change, apply it, then verify and assess retrieval.
 - **upgrade**: propose reviewed edits only to generated assets. Preserve project-owned docs, mappings and policy.
 
@@ -32,7 +32,7 @@ Read [workflow](references/workflow.md) for the chosen mode. Read [migration](re
 6. Stop semantic writes for unresolved authority conflicts. Continue independent work with a separate conflict-free plan.
 7. Write policy and facts in the target repository; this global skill owns the method only.
 
-Read [governance core](references/governance-core.md), [Agent Notes](references/agent-notes.md), and [repository contract](references/repository-contract.md) only as needed. [Audit rubric](references/audit-rubric.md) bounds semantic claims; [lineage](references/lineage.md) records DSH adaptations. [Small Web App](references/profile-small-web-app.md) is optional guidance, not a required output tree.
+Read [governance core](references/governance-core.md), [Agent Notes](references/agent-notes.md), and [repository contract](references/repository-contract.md) only as needed. For Matt layouts, glossary paths, ADRs or external trackers, read the repository contract's coexistence rules. [Audit rubric](references/audit-rubric.md) bounds semantic claims; [lineage](references/lineage.md) records sources and adaptations. [Small Web App](references/profile-small-web-app.md) is optional guidance, not a required output tree.
 
 ## Use the tools
 

@@ -25,6 +25,8 @@ The check list and its severities are owned by the skill's [repository contract]
 
 `verify --completion --fresh-session <json>` requires all seven documented retrieval topics and a current snapshot. Results declare reviewer assurance and limitations; fabricated reviewer attestations cannot be detected cryptographically by this tool. Missing independent assessment must remain visible.
 
+Glossary discovery and the guarded write scope resolve `authority.glossary` through one source, falling back to conventional root names only when it is absent. The [glossary contract](../../dsh-doc-audits/references/repository-contract.md#glossary-authority) owns precedence and ambiguity handling. Bootstrap templates classify Matt ADRs and agent guides as current documentation; existing manifests require an explicit mapping change. Bootstrap preserves existing files, including the `Agent skills` block in root instructions, and upgrade plans continue to permit only the named generated assets.
+
 ## Repository-local generation
 
 `scripts/generate_verifier.py` selects the actual deterministic check functions from the CLI and creates both the bundled template and this repository's standalone verifier. `--check` fails on drift. Targets receive one Python file, without this skill or its planning module. The local `--completion` checks document readiness only; fresh-session evidence validation belongs to the global workflow.

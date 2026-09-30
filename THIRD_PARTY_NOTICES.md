@@ -1,5 +1,9 @@
 # Third-party notices
 
+## Matt Pocock skills compatibility reference
+
+The optional Matt layout is referenced from [mattpocock/skills at `d81f3a1`](https://github.com/mattpocock/skills/tree/d81f3a183412e71a5b1e84ca21bc1a35eea03a60), whose [license](https://github.com/mattpocock/skills/blob/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/LICENSE) is MIT, copyright 2026 Matt Pocock. This repository does not redistribute Matt's skill code, templates or prose; its original interoperability rules are described in [lineage](dsh-doc-audits/references/lineage.md#matt-pocock-workflow-compatibility).
+
 ## DeepSeek Harness
 
 `dsh-doc-audits` is an original portable adaptation inspired by the documentation governance model implemented by DeepSeek Harness, including its `dsh-doc` skill, documentation tier rules, and Agent Note lifecycle.
