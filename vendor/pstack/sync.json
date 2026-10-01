@@ -1,0 +1,55 @@
+{
+  "repo": "https://github.com/cursor/plugins",
+  "pinned": "2eb7ed4613cfc8f098dfe464a23680ea44d84c5e",
+  "license": "pstack/LICENSE",
+  "skills": {
+    "create-verification-skill": "pstack/skills/create-verification-skill",
+    "maintain-verification-skill": "pstack/skills/maintain-verification-skill"
+  },
+  "patches": [
+    {
+      "file": "create-verification-skill/SKILL.md",
+      "old": ".cursor/skills/verify-<app>/",
+      "new": ".agents/skills/verify-<app>/"
+    },
+    {
+      "file": "create-verification-skill/SKILL.md",
+      "old": "without frontmatter the skill never registers)",
+      "new": "without frontmatter the skill never registers; also symlink `.claude/skills/verify-<app>` to it so Claude Code discovers the same skill)"
+    },
+    {
+      "file": "maintain-verification-skill/SKILL.md",
+      "old": "(usually `.cursor/skills/verify-*/`)",
+      "new": "(usually `.agents/skills/verify-*/`)"
+    },
+    {
+      "file": "maintain-verification-skill/SKILL.md",
+      "old": "at most one PR of proven corrections",
+      "new": "at most one local commit of proven corrections"
+    },
+    {
+      "file": "maintain-verification-skill/SKILL.md",
+      "old": "one PR ships proven doc, harness, or map corrections.",
+      "new": "one local commit carries proven doc, harness, or map corrections; push or open a pull request only when the user asks."
+    },
+    {
+      "file": "maintain-verification-skill/SKILL.md",
+      "old": "No branch, no PR.",
+      "new": "No commit."
+    },
+    {
+      "file": "maintain-verification-skill/SKILL.md",
+      "old": "keep it out of this PR.",
+      "new": "keep it out of this commit."
+    },
+    {
+      "file": "maintain-verification-skill/SKILL.md",
+      "old": "For changed: one PR of proven corrections, re-read every changed file first. For clean or blocked: no PR,",
+      "new": "For changed: one local commit of proven corrections, re-read every changed file first. For clean or blocked: no commit,"
+    }
+  ],
+  "forbid": [
+    ".cursor/",
+    " PR "
+  ]
+}

@@ -1,5 +1,9 @@
 # Third-party notices
 
+## pstack
+
+`create-verification-skill/` and `maintain-verification-skill/` are generated from [cursor/plugins `pstack/`](https://github.com/cursor/plugins/tree/main/pstack) at the commit pinned in `vendor/pstack/sync.json`, with the text patches listed there (install paths moved from `.cursor/skills` to `.agents/skills`; the maintenance pass makes a local commit instead of opening a PR). pstack is MIT licensed, copyright 2026 Lauren Tan; each generated directory carries the upstream `LICENSE`.
+
 ## Matt Pocock skills compatibility reference
 
 The optional Matt layout is referenced from [mattpocock/skills at `d81f3a1`](https://github.com/mattpocock/skills/tree/d81f3a183412e71a5b1e84ca21bc1a35eea03a60), whose [license](https://github.com/mattpocock/skills/blob/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/LICENSE) is MIT, copyright 2026 Matt Pocock. This repository does not redistribute Matt's skill code, templates or prose; its original interoperability rules are described in [lineage](dsh-doc-audits/references/lineage.md#matt-pocock-workflow-compatibility).

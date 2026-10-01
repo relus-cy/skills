@@ -5,7 +5,7 @@ Last reviewed: 2026-09-23
 
 ## Purpose and boundaries
 
-The repository distributes independent, top-level Agent Skills. `dsh-doc-audits` applies the DSH one-owner documentation method across projects without embedding an application's business domains. Models decide the useful split; target repositories retain their facts and policy.
+The repository distributes independent, top-level Agent Skills. Vendored third-party skills are generated from a pinned upstream plus local text patches by `scripts/sync_vendor.py`; their [sync procedure](runbooks/vendor-sync.md) owns the details. `dsh-doc-audits` applies the DSH one-owner documentation method across projects without embedding an application's business domains. Models decide the useful split; target repositories retain their facts and policy.
 
 ## Components
 
