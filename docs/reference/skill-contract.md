@@ -22,6 +22,10 @@ Python 3.11+ and Git. JSON-compatible YAML remains the manifest encoding. Contro
 
 Version 0.3.0 supports optional `authority.glossary` and Matt-style repository owners without adopting an external ticket workflow. The [repository contract](../../dsh-doc-audits/references/repository-contract.md#glossary-authority) owns glossary fallback, tier registration, ADR opt-out and tracker boundaries. Existing `CONTEXT.md` repositories remain supported. External tracker close-out is an agent sync responsibility, not a local-verifier guarantee.
 
+## recall
+
+`recall/` is independent of `dsh-doc-audits`. `disable-model-invocation: true` keeps it manual-only. Its stable interface is `recall/scripts/recall.py` (`list`, `show`, the `RECALL_*_ROOT` store overrides and the `--json` fields); `--help` owns flag details and `tests/test_recall.py` pins behavior. It only reads transcript stores and runs read-only `git` in the target; output is redacted before printing.
+
 ## Distribution
 
 Copy or sync the whole `dsh-doc-audits/` directory, including scripts, schemas and references. A target's standalone verifier does not need that directory. The maintained source, templates and local generated verifier must remain consistent.

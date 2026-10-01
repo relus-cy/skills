@@ -1,0 +1,2 @@
+{"type": "user", "isSidechain": true, "cwd": "{{REPO}}", "gitBranch": "main", "sessionId": "c5555555-5555-4555-8555-555555555555", "timestamp": "2026-09-20T11:00:00Z", "message": {"role": "user", "content": "SIDECHAIN-TASK"}}
+{"type": "assistant", "isSidechain": true, "cwd": "{{REPO}}", "gitBranch": "main", "sessionId": "c5555555-5555-4555-8555-555555555555", "timestamp": "2026-09-20T11:00:09Z", "message": {"role": "assistant", "content": [{"type": "text", "text": "sidechain reply"}]}}

@@ -1,0 +1,2 @@
+{"type": "user", "isSidechain": false, "cwd": "{{OTHER}}", "gitBranch": "dev", "sessionId": "c3333333-3333-4333-8333-333333333333", "timestamp": "2026-09-21T09:00:00Z", "message": {"role": "user", "content": "OTHER-PROJECT-WORK"}}
+{"type": "assistant", "isSidechain": false, "cwd": "{{OTHER}}", "gitBranch": "dev", "sessionId": "c3333333-3333-4333-8333-333333333333", "timestamp": "2026-09-21T09:00:09Z", "message": {"role": "assistant", "content": [{"type": "text", "text": "other reply"}]}}

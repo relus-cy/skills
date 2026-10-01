@@ -5,6 +5,7 @@ Reusable Agent Skills maintained by `relus-cy`. Each skill is a top-level direct
 | Skill | Origin |
 | --- | --- |
 | `dsh-doc-audits` | Original, documented below |
+| `recall` | Original; manual-only (`/recall`), see [recall](#recall) |
 | `create-verification-skill`, `maintain-verification-skill` | Vendored from [pstack](https://github.com/cursor/plugins/tree/main/pstack) with local patches; see [vendor sync](docs/runbooks/vendor-sync.md) |
 
 ## dsh-doc-audits · 0.3.0
@@ -12,6 +13,10 @@ Reusable Agent Skills maintained by `relus-cy`. Each skill is a top-level direct
 A thin, portable adaptation of DeepSeek Harness documentation governance: one current owner per durable fact; separate current behavior, decision rationale and historical work. A capable model decides how to split a project. Local tools validate evidence, reviewed plans, write boundaries and documentation readiness.
 
 Use it to initialize a documentation scaffold, migrate an existing repository, synchronize changed contracts, audit drift or upgrade generated governance assets. No fixed WebApp layout, project-specific domain names, mandatory external skill, model service or network access is built in.
+
+## recall
+
+Rebuilds recent working context from local Claude Code, Codex and Pi transcripts, then has the agent verify it against live `git`/`gh` state and write a short resume brief. It never reads another project unless asked, hides subagent sessions by default and redacts secrets in its output. `recall/scripts/recall.py` is a read-only, standard-library CLI; `python3 recall/scripts/recall.py list --help` documents scope, time window, store overrides (`RECALL_CLAUDE_ROOT`, `RECALL_CODEX_ROOT`, `RECALL_PI_ROOT`) and output. The workflow and brief format live in [its skill entry](recall/SKILL.md).
 
 ## Install and use
 

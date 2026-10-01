@@ -1,11 +1,11 @@
 # skills architecture
 
 Status: current authority
-Last reviewed: 2026-09-23
+Last reviewed: 2026-10-01
 
 ## Purpose and boundaries
 
-The repository distributes independent, top-level Agent Skills. Vendored third-party skills are generated from a pinned upstream plus local text patches by `scripts/sync_vendor.py`; their [sync procedure](runbooks/vendor-sync.md) owns the details. `dsh-doc-audits` applies the DSH one-owner documentation method across projects without embedding an application's business domains. Models decide the useful split; target repositories retain their facts and policy.
+The repository distributes independent, top-level Agent Skills. Vendored third-party skills are generated from a pinned upstream plus local text patches by `scripts/sync_vendor.py`; their [sync procedure](runbooks/vendor-sync.md) owns the details. `dsh-doc-audits` applies the DSH one-owner documentation method across projects without embedding an application's business domains. Models decide the useful split; target repositories retain their facts and policy. `recall` is a separate read-only skill whose script mines local agent transcripts; the agent verifies its findings against live Git state.
 
 ## Components
 

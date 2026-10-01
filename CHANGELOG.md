@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add the manual-only `recall` skill: `recall.py list` and `show` read Claude Code, Codex and Pi transcripts for one repository (cwd, main worktree or Codex `repository_url` match), keep real user messages and each turn's final reply, merge paginated Codex sessions, extract commit SHAs and GitHub PR/issue URLs, redact secrets, and warn on transcript files that no longer parse.
+
 ## 0.3.0 — 2026-10-01
 
 - Resolve optional `authority.glossary` consistently across inspection, planning and reviewed writes; recognize `GLOSSARY.md` and legacy `CONTEXT.md` when unset, and leave dual-name authority conflicts for explicit resolution.

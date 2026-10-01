@@ -1,0 +1,3 @@
+{"timestamp": "2026-09-22T05:00:00Z", "type": "session_meta", "payload": {"id": "0199aaaa-0000-7000-8000-000000000003", "timestamp": "2026-09-22T05:00:00Z", "cwd": "{{ELSEWHERE}}", "git": {"commit_hash": "0000000000000000000000000000000000000000", "branch": "ticket-7", "repository_url": "https://github.com/acme/widget"}, "thread_source": "agent_created_thread", "source": "vscode"}}
+{"timestamp": "2026-09-22T05:00:01Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "WORKTREE-TICKET-REQUEST"}]}}
+{"timestamp": "2026-09-22T05:00:09Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "WORKTREE-TICKET-REPLY"}]}}

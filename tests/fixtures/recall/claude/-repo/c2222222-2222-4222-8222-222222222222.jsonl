@@ -1,0 +1,2 @@
+{"type": "user", "isSidechain": false, "cwd": "{{REPO}}", "gitBranch": "main", "sessionId": "c2222222-2222-4222-8222-222222222222", "timestamp": "2026-08-01T09:00:00Z", "message": {"role": "user", "content": "OLD-SESSION-WORK"}}
+{"type": "assistant", "isSidechain": false, "cwd": "{{REPO}}", "gitBranch": "main", "sessionId": "c2222222-2222-4222-8222-222222222222", "timestamp": "2026-08-01T09:00:09Z", "message": {"role": "assistant", "content": [{"type": "text", "text": "old reply"}]}}
