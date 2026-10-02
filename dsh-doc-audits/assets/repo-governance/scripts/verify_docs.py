@@ -316,7 +316,7 @@ def _markdown_anchors(text: str) -> set[str]:
     return anchors
 
 def _markdown_link_findings(
-    root: Path,
+    repo_root: Path,
     exclude_patterns: Iterable[str] = (),
     historical_patterns: Iterable[str] = (),
 ) -> list[dict[str, Any]]:
@@ -324,10 +324,10 @@ def _markdown_link_findings(
     link_re = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
     scheme_re = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
     historical_patterns = tuple(historical_patterns)
-    for rel in _relative_files(root, exclude_patterns):
+    for rel in _relative_files(repo_root, exclude_patterns):
         if not rel.endswith(".md"):
             continue
-        path = root / rel
+        path = repo_root / rel
         try:
             text = path.read_text(encoding="utf-8")
         except OSError:
@@ -350,7 +350,7 @@ def _markdown_link_findings(
                 target = unquote(target.split("?", 1)[0])
                 resolved = (path.parent / target).resolve() if target else path.resolve()
                 try:
-                    resolved.relative_to(root)
+                    resolved.relative_to(repo_root)
                 except ValueError:
                     findings.append(_finding(
                         "markdown-link-outside",

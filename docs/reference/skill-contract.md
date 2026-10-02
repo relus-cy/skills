@@ -31,3 +31,5 @@ The optional external-code mapping and independent Git range flags extend single
 ## Distribution
 
 Copy or sync the whole `dsh-doc-audits/` directory, including scripts, schemas and references. A target's standalone verifier does not need that directory. The maintained source, templates and local generated verifier must remain consistent.
+
+Skillshare 0.23.1 scans bundled Python as instruction text: its `prompt-injection-1` rule misclassifies a standalone `root: Path` parameter declaration as a role label. The private link-check helper uses `repo_root` to avoid that ambiguity without changing audit rules or thresholds. Exercise the complete bundle through installation as well as running source tests; installed CLI checks must cover both accepted and rejected inputs.
