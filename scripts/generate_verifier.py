@@ -9,7 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'dsh-doc-audits/scripts/repo_docs.py'
 FUNCTIONS = {
     '_glossary_paths', '_normalize_repo', '_git_worktree_files', '_relative_files', '_matches', '_finding', '_manifest_issues',
-    '_readiness_findings', '_load_governance', '_markdown_prose_lines', '_markdown_link_findings',
+    '_readiness_findings', '_load_governance', '_markdown_prose_lines', '_markdown_anchors', '_markdown_link_findings',
+    '_require_git_root', '_committed_changes',
     '_agent_note_findings', '_budget_findings', 'verify_repository',
     '_current_markdown_files', 'audit_repository', 'impact_repository', '_emit',
 }
@@ -19,17 +20,25 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Repository-local documentation checks")
     parser.add_argument("--repo", default=".")
     parser.add_argument("--base")
+    parser.add_argument("--head")
+    parser.add_argument("--code-repo")
+    parser.add_argument("--code-base")
+    parser.add_argument("--code-head")
     parser.add_argument("--completion", action="store_true", help="reject incomplete scaffold; semantic review is still required")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     try:
+        if not args.base and any(v is not None for v in (args.head, args.code_repo, args.code_base, args.code_head)):
+            raise ValueError("--head and --code-* require --base for impact checking")
         payload = audit_repository(args.repo)
         if args.completion:
             completion = verify_repository(args.repo, completion=True)
             payload["findings"] = completion["findings"] + [f for f in payload["findings"] if f["code"] in {"duplicate-prose", "historical-authority-leak"}]
         if args.base:
-            impact = impact_repository(args.repo, base=args.base)
+            impact = impact_repository(args.repo, base=args.base, head=args.head or "HEAD",
+                                       code_repo=args.code_repo, code_base=args.code_base, code_head=args.code_head)
             payload["changed_files"] = impact.get("changed_files", [])
+            payload["changed_code_files"] = impact.get("changed_code_files", [])
             payload["findings"].extend(impact["findings"])
         payload["ok"] = not any(f["severity"] == "error" for f in payload["findings"])
         payload["summary"] = {"errors": sum(f["severity"] == "error" for f in payload["findings"]),
