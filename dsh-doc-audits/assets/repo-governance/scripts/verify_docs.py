@@ -8,6 +8,12 @@ import argparse
 
 import json
 
+import html
+
+from html.parser import HTMLParser
+
+import unicodedata
+
 import os
 
 import re
@@ -157,8 +163,10 @@ def _manifest_issues(data: Any) -> list[str]:
             if (not isinstance(item, dict) or not isinstance(item.get("name"), str) or not item["name"]
                     or not strings(item.get("code")) or not item["code"]
                     or not strings(item.get("docs")) or not item["docs"]
-                    or item.get("level") not in {"hard", "soft"}):
-                issues.append("each impact mapping requires name, code, docs and hard/soft level")
+                    or item.get("level") not in {"hard", "soft"}
+                    or not isinstance(item.get("code_repository", "local"), str)
+                    or item.get("code_repository", "local") not in {"local", "external"}):
+                issues.append("each impact mapping requires name, code, docs, hard/soft level and local/external code_repository")
             elif item["name"] in names or not all(relative(v, True) for v in item["code"] + item["docs"]):
                 issues.append("impact mappings require unique names and relative patterns")
             else:
@@ -234,7 +242,7 @@ def _load_governance(root: Path) -> tuple[dict[str, Any] | None, list[dict[str, 
         return None, [_finding("governance-invalid", "error", "docs/governance.yaml", issue) for issue in issues]
     return data, []
 
-def _markdown_prose_lines(text: str) -> Iterable[tuple[int, str]]:
+def _markdown_prose_lines(text: str, *, preserve_inline: bool = False) -> Iterable[tuple[int, str]]:
     """Yield numbered lines outside fenced code blocks, with inline code spans blanked.
 
     A line-based CommonMark subset: an opening fence may follow indentation, blockquote or
@@ -255,7 +263,57 @@ def _markdown_prose_lines(text: str) -> Iterable[tuple[int, str]]:
         if opener and not (opener.group(1)[0] == "`" and "`" in opener.group(2)):
             fence = opener.group(1)
             continue
-        yield line_no, code_span_re.sub(lambda span: " " * len(span.group(0)), line)
+        yield line_no, line if preserve_inline else code_span_re.sub(lambda span: " " * len(span.group(0)), line)
+
+def _markdown_anchors(text: str) -> set[str]:
+    """Bounded GitHub-style ATX/Setext headings and explicit HTML anchors."""
+    anchors: set[str] = set()
+    generated: set[str] = set()
+    previous = ""
+    previous_no = 0
+    class AnchorParser(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            for name, value in attrs:
+                if name in {"id", "name"} and value is not None:
+                    anchors.add(value)
+
+    prose = dict(_markdown_prose_lines(text))
+    parser = AnchorParser(convert_charrefs=True)
+    parser.feed("\n".join(prose.values()))
+    for line_no, line in _markdown_prose_lines(text, preserve_inline=True):
+        line = re.sub(r"^(?: {0,3}>[ \t]?)+", "", line)
+        heading = re.match(r"^ {0,3}#{1,6}(?:[ \t]+(.*?)|[ \t]*)$", line)
+        title = None
+        if heading:
+            title = re.sub(r"[ \t]+#+[ \t]*$", "", heading.group(1) or "")
+        elif (previous.strip() and previous_no == line_no - 1
+              and not re.match(r"^(?: {4}|\t| {0,3}(?:#{1,6}(?:\s|$)|[-+*]\s|\d+[.)]\s|<|(?:=+|-+)\s*$))", previous)
+              and re.fullmatch(r" {0,3}(?:=+|-+)[ \t]*", line)):
+            title = previous.strip()
+        if title is not None:
+            # Code spans contribute literal text, never emphasis or HTML syntax.
+            code_text: list[str] = []
+            def preserve_code(match: re.Match[str]) -> str:
+                code_text.append(match.group(2))
+                return f"\x00{len(code_text) - 1}\x00"
+            title = re.sub(r"(`+)(.+?)\1", preserve_code, title)
+            title = re.sub(r"!?\[([^\]]*)\]\([^)]*\)", r"\1", title)
+            title = html.unescape(re.sub(r"<[^>]*>", "", title))
+            title = re.sub(r"(\*\*|~~|\*)(.+?)\1", r"\2", title)
+            title = re.sub(r"(?<!\w)(__|_)(.+?)\1(?!\w)", r"\2", title)
+            for index, literal in enumerate(code_text):
+                title = title.replace(f"\x00{index}\x00", literal)
+            title = title.lower()
+            slug = "".join(c for c in title if c in " -_" or unicodedata.category(c)[0] in "LNM")
+            slug = slug.replace(" ", "-")
+            anchor, suffix = slug, 0
+            while anchor in generated:
+                suffix += 1
+                anchor = f"{slug}-{suffix}"
+            generated.add(anchor)
+            anchors.add(anchor)
+        previous, previous_no = line, line_no
+    return anchors
 
 def _markdown_link_findings(
     root: Path,
@@ -286,12 +344,11 @@ def _markdown_link_findings(
                     target = target[1:target.index(">")]
                 elif target:
                     target = target.split(maxsplit=1)[0]
-                if not target or target.startswith("#") or target.startswith("/") or scheme_re.match(target):
+                if not target or target.startswith("/") or scheme_re.match(target):
                     continue
-                target = unquote(target.split("#", 1)[0].split("?", 1)[0])
-                if not target:
-                    continue
-                resolved = (path.parent / target).resolve()
+                target, separator, fragment = target.partition("#")
+                target = unquote(target.split("?", 1)[0])
+                resolved = (path.parent / target).resolve() if target else path.resolve()
                 try:
                     resolved.relative_to(root)
                 except ValueError:
@@ -313,6 +370,13 @@ def _markdown_link_findings(
                         line=line_no,
                         **extra,
                     ))
+                elif separator and fragment and resolved.is_file() and resolved.suffix.lower() == ".md":
+                    if unquote(fragment) not in _markdown_anchors(resolved.read_text(encoding="utf-8")):
+                        findings.append(_finding(
+                            "markdown-fragment-broken", severity, rel,
+                            f"Line {line_no} links to a missing Markdown fragment: {raw}",
+                            line=line_no, **extra,
+                        ))
     return findings
 
 def _agent_note_findings(root: Path, config: dict[str, Any]) -> list[dict[str, Any]]:
@@ -524,34 +588,57 @@ def audit_repository(repo: str | os.PathLike[str] | Path) -> dict[str, Any]:
     warnings = sum(1 for finding in findings if finding["severity"] != "error")
     return {"ok": errors == 0, "findings": findings, "summary": {"errors": errors, "warnings": warnings}}
 
+def _require_git_root(root: Path) -> None:
+    result = subprocess.run(["git", "-C", str(root), "rev-parse", "--show-toplevel"],
+                            text=True, capture_output=True)
+    if result.returncode or Path(result.stdout.strip()).resolve() != root:
+        raise ValueError("impact requires a Git worktree root for --repo and --code-repo")
+
+def _committed_changes(root: Path, base: str, head: str) -> list[str]:
+    # Resolve refs first: option-looking input cannot become a diff flag.
+    refs = [subprocess.run(["git", "-C", str(root), "rev-parse", "--verify", "--end-of-options", ref + "^{commit}"],
+                          check=True, text=True, capture_output=True).stdout.strip() for ref in (base, head)]
+    result = subprocess.run(["git", "-C", str(root), "diff", "--name-only", "-z", f"{refs[0]}...{refs[1]}", "--"],
+                            check=True, text=True, capture_output=True)
+    return sorted(path for path in result.stdout.split("\0") if path)
+
 def impact_repository(
     repo: str | os.PathLike[str] | Path,
     *,
     base: str,
     head: str = "HEAD",
+    code_repo: str | os.PathLike[str] | Path | None = None,
+    code_base: str | None = None,
+    code_head: str | None = None,
 ) -> dict[str, Any]:
     root = _normalize_repo(repo)
+    _require_git_root(root)
     config, findings = _load_governance(root)
     if config is None:
         return {"ok": False, "changed_files": [], "findings": findings}
+    external = any(m.get("code_repository", "local") == "external" for m in config["impact_mappings"])
+    if external or code_repo is not None or code_base is not None or code_head is not None:
+        if not code_repo or not code_base:
+            raise ValueError("external impact requires both --code-repo and --code-base; --code-head defaults to HEAD")
+    code_root = _normalize_repo(code_repo) if code_repo else None
+    if code_root:
+        _require_git_root(code_root)
+        if code_root == root:
+            raise ValueError("--code-repo must be an independent repository root")
     try:
-        completed = subprocess.run(
-            ["git", "-C", str(root), "diff", "--name-only", f"{base}...{head}"],
-            check=True,
-            text=True,
-            capture_output=True,
-        )
+        changed = _committed_changes(root, base, head)
+        code_changed_files = _committed_changes(code_root, code_base, code_head or "HEAD") if code_root else []
     except (OSError, subprocess.CalledProcessError) as exc:
         message = exc.stderr.strip() if isinstance(exc, subprocess.CalledProcessError) and exc.stderr else str(exc)
         findings.append(_finding("git-diff-failed", "error", ".", f"Unable to compute Git diff: {message}"))
         return {"ok": False, "changed_files": [], "findings": findings}
 
-    changed = sorted(line.strip().replace(os.sep, "/") for line in completed.stdout.splitlines() if line.strip())
     existing = _relative_files(root, config.get("exclude") or [])
     for mapping in config.get("impact_mappings") or []:
         code_patterns = list(mapping.get("code") or [])
         doc_patterns = list(mapping.get("docs") or [])
-        code_changed = sorted(path for path in changed if any(_matches(path, pattern) for pattern in code_patterns))
+        source_changes = code_changed_files if mapping.get("code_repository", "local") == "external" else changed
+        code_changed = sorted(path for path in source_changes if any(_matches(path, pattern) for pattern in code_patterns))
         if not code_changed:
             continue
         docs_changed = sorted(path for path in changed if any(_matches(path, pattern) for pattern in doc_patterns))
@@ -585,6 +672,7 @@ def impact_repository(
     return {
         "ok": not any(finding["severity"] == "error" for finding in findings),
         "changed_files": changed,
+        "changed_code_files": code_changed_files,
         "findings": findings,
     }
 
@@ -605,17 +693,25 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Repository-local documentation checks")
     parser.add_argument("--repo", default=".")
     parser.add_argument("--base")
+    parser.add_argument("--head")
+    parser.add_argument("--code-repo")
+    parser.add_argument("--code-base")
+    parser.add_argument("--code-head")
     parser.add_argument("--completion", action="store_true", help="reject incomplete scaffold; semantic review is still required")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     try:
+        if not args.base and any(v is not None for v in (args.head, args.code_repo, args.code_base, args.code_head)):
+            raise ValueError("--head and --code-* require --base for impact checking")
         payload = audit_repository(args.repo)
         if args.completion:
             completion = verify_repository(args.repo, completion=True)
             payload["findings"] = completion["findings"] + [f for f in payload["findings"] if f["code"] in {"duplicate-prose", "historical-authority-leak"}]
         if args.base:
-            impact = impact_repository(args.repo, base=args.base)
+            impact = impact_repository(args.repo, base=args.base, head=args.head or "HEAD",
+                                       code_repo=args.code_repo, code_base=args.code_base, code_head=args.code_head)
             payload["changed_files"] = impact.get("changed_files", [])
+            payload["changed_code_files"] = impact.get("changed_code_files", [])
             payload["findings"].extend(impact["findings"])
         payload["ok"] = not any(f["severity"] == "error" for f in payload["findings"])
         payload["summary"] = {"errors": sum(f["severity"] == "error" for f in payload["findings"]),

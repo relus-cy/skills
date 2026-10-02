@@ -28,7 +28,7 @@ Required top-level fields:
 - `tiers.historical`: glob patterns for historical material. The plan guard reads this list: matching paths cannot be edited, moved or proposed as owners. The template lists only generic names; add the project's own planning or history folders.
 - `agent_notes`: root and lifecycle/status mapping.
 - `budgets`: standing-document character ceilings.
-- `impact_mappings`: code patterns, owning docs, and `hard` or `soft` level.
+- `impact_mappings`: code patterns, owning docs, and `hard` or `soft` level; optional `code_repository` is `local` (default) or `external`.
 - `audit`: corpus-audit thresholds and authority terms.
 Optional `exclude`: paths omitted from corpus scans, such as test fixtures, generated artifacts, and virtual environments.
 
@@ -71,6 +71,10 @@ Either level only warns, with `doc-owner-missing`, while no existing file matche
 
 Mappings are prompts to investigate, not proof that every changed file changes behavior. Keep them narrow enough to avoid ritual edits.
 
+`impact --repo <docs-root> --base <docs-base> [--head <docs-head>]` compares committed changes from the merge base to head. Uncommitted changes do not satisfy owner updates. The repository-local verifier accepts the same range flags without the `impact` subcommand. Heads default to `HEAD`; references belong to their own repository and are never inferred from the other repository.
+
+For an independent code repository, mark its mappings `"code_repository": "external"` and pass `--code-repo <code-root> --code-base <code-base> [--code-head <code-head>]`. External code patterns are relative to that root; local code patterns and all owning-document patterns remain relative to the documentation root. `changed_files` reports the documentation diff and `changed_code_files` the external diff. Both paths must be Git worktree roots, not subdirectories accidentally resolved through a parent repository. Missing external context, incomplete flags and non-root paths are input errors (exit 2). The local verifier requires `--base` with any range/code flag. Ordinary verification without a range remains available. No waiver parsing, working-tree diff or multi-code-repository discovery is performed.
+
 ## Generated verifier
 
 `scripts/verify_docs.py` uses only Python's standard library and checks:
@@ -96,7 +100,11 @@ At a Git worktree root, checks read the files Git lists: tracked files plus untr
 
 Link checks skip fenced code blocks and inline code spans. A fence opens with three or more backticks or tildes, including one indented under a list item or blockquote; only the same character repeated at least as often closes it.
 
-A missing or outside-repository link target is an error, except in files matched by `tiers.historical`. First-pass migration preserves historical bodies (authority review, write boundary), so the workflow cannot repair such a link: it is reported as a warning with `tier: historical`, also under `--completion`. Add the path to `exclude` only when even the warning is unwanted; that removes it from every scan.
+Section checks cover same-file `#fragment` and relative `.md#fragment` inline links, percent-decoded fragments, ATX headings (including blockquotes), single-line Setext headings, and HTML `id`/`name` attributes. HTML comments, inline examples and similarly named attributes such as `data-id` do not define anchors. Heading anchors follow [GitHub section links](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#section-links): lowercase text, spaces as hyphens, stripped formatting/punctuation, Unicode letters retained, and numbered duplicate anchors. Inline code contributes its text; fenced code contributes no headings. Non-Markdown fragments and remote targets are not checked.
+
+This dependency-free subset is not a complete Markdown renderer: reference-style links, complex nested inline syntax, multiline Setext text and renderer extensions are outside its guarantees. Use a simple heading or explicit anchor for portable section links.
+
+A missing fragment (`markdown-fragment-broken`), missing file or outside-repository link target is an error, except in files matched by `tiers.historical`. First-pass migration preserves historical bodies (authority review, write boundary), so the workflow cannot repair such a link: it is reported as a warning with `tier: historical`, also under `--completion`. Add the path to `exclude` only when even the warning is unwanted; that removes it from every scan.
 
 ## Upgrade boundary
 
