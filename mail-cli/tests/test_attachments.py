@@ -95,11 +95,24 @@ class IMAPHandler(socketserver.StreamRequestHandler):
                 pass
             elif command in ("EXAMINE", "SELECT"):
                 self.wfile.write(b"* 1 EXISTS\r\n* FLAGS (\\Seen)\r\n")
+            elif command == "LIST":
+                if getattr(self.server, "fail_list", False):
+                    self.wfile.write(f"{tag} NO LIST failed\r\n".encode())
+                    continue
+                self.wfile.write(b'* LIST (\\HasNoChildren) "/" INBOX\r\n')
+            elif command == "UID" and argument.upper().startswith("SEARCH"):
+                self.wfile.write(b"* SEARCH 41 42 43\r\n")
             elif command == "UID" and argument.upper().startswith("FETCH "):
+                if getattr(self.server, "fail_uid_fetch", False):
+                    self.wfile.write(f"{tag} NO FETCH failed\r\n".encode())
+                    continue
                 if "BODY.PEEK[" in argument.upper():
-                    raw = self.server.raw
-                    self.wfile.write(f"* 1 FETCH (UID 42 BODY[] {{{len(raw)}}}\r\n".encode())
-                    self.wfile.write(raw + b")\r\n")
+                    if getattr(self.server, "fetch_without_literal", False):
+                        self.wfile.write(b"* 1 FETCH (UID 42 FLAGS (\\Seen))\r\n")
+                    else:
+                        raw = self.server.raw
+                        self.wfile.write(f"* 1 FETCH (UID 42 BODY[] {{{len(raw)}}}\r\n".encode())
+                        self.wfile.write(raw + b")\r\n")
                 elif "RFC822.SIZE" in argument.upper():
                     self.wfile.write(f"* 1 FETCH (UID 42 RFC822.SIZE {self.server.advertised_size})\r\n".encode())
                 else:
@@ -127,7 +140,12 @@ class SMTPHandler(socketserver.StreamRequestHandler):
                 self.wfile.write(b"250-fixture\r\n250-AUTH PLAIN\r\n250 SIZE 104857600\r\n")
             elif command == "AUTH":
                 self.wfile.write(b"235 authenticated\r\n")
-            elif command in ("MAIL", "RCPT", "RSET", "NOOP"):
+            elif command == "RCPT":
+                if any(address in text for address in getattr(self.server, "refuse_rcpt", ())):
+                    self.wfile.write(b"550 5.1.1 mailbox unavailable\r\n")
+                else:
+                    self.wfile.write(b"250 accepted\r\n")
+            elif command in ("MAIL", "RSET", "NOOP"):
                 self.wfile.write(b"250 accepted\r\n")
             elif command == "DATA":
                 self.wfile.write(b"354 end with dot\r\n")

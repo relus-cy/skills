@@ -49,7 +49,7 @@ python3 scripts/mail_cli.py smtp-send \
 
 Use subcommand `--help` for connection overrides and configurable size limits. Global options such as `--username` go before the subcommand. Commands with omitted connection settings can consult and migrate a legacy saved-account store; for environment-only operation, supply host, port, and security explicitly as described in `SKILL.md`.
 
-Command results and handled runtime errors are JSON on stdout. Connection, TLS, filesystem, and invalid-value exceptions return `{"ok": false, "error": "..."}` with a nonzero exit code. Ports must be integers from 1 through 65535. `--help` uses plain text; invalid CLI syntax is reported as plain text on stderr. Automation should check the exit code and the JSON `ok` field, and retain stderr for failures without a JSON response. Some legacy preflight commands can report `ok: false` with exit code zero.
+Command results and handled runtime errors are JSON on stdout. Connection, TLS, filesystem, and invalid-value exceptions return `{"ok": false, "error": "..."}` with a nonzero exit code. Ports must be integers from 1 through 65535. `--help` uses plain text; invalid CLI syntax is reported as plain text on stderr. Automation should check the exit code and the JSON `ok` field, and retain stderr for failures without a JSON response. `auth-check`, `auth-restore`, and `smtp-test` can report `ok: false` with exit code zero. A send accepted by the server can still list rejected recipients under `sent.refused`; resend only to those addresses.
 
 ## Packaging choice
 

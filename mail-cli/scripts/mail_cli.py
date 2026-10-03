@@ -1434,10 +1434,12 @@ def cmd_imap_test(args: argparse.Namespace) -> None:
     client = imap_connect(args)
     try:
         status, folders = client.list()
+        if status != "OK":
+            fail("IMAP LIST failed.")
         emit({
             "ok": True,
             "command": "imap-test",
-            "folders_sample": [decode_text(line) for line in (folders or [])[:5]] if status == "OK" else [],
+            "folders_sample": [decode_text(line) for line in (folders or [])[:5]],
             "capabilities": [decode_text(item) for item in getattr(client, "capabilities", [])],
         })
     finally:
@@ -1477,8 +1479,9 @@ def cmd_imap_search(args: argparse.Namespace) -> None:
                 uid,
                 "(BODY.PEEK[HEADER.FIELDS (FROM TO CC SUBJECT DATE MESSAGE-ID)])",
             )
-            headers = message_headers(first_literal(fetched)) if status == "OK" else {}
-            messages.append({"uid": uid, "headers": headers})
+            if status != "OK":
+                fail(f"IMAP header FETCH failed for UID {uid}.")
+            messages.append({"uid": uid, "headers": message_headers(first_literal(fetched))})
         emit({"ok": True, "count": len(uids), "returned": len(messages), "messages": messages})
     finally:
         client.logout()
@@ -1499,6 +1502,8 @@ def cmd_imap_fetch(args: argparse.Namespace) -> None:
         if status != "OK":
             fail("IMAP FETCH failed.")
         raw = first_literal(data)
+        if not raw:
+            fail("IMAP FETCH returned no message data.")
         msg = BytesParser(policy=policy.default).parsebytes(raw)
         payload: dict[str, Any] = {"ok": True, "uid": args.uid, "headers": message_headers(raw)}
         if args.body:
@@ -1604,10 +1609,15 @@ def cmd_smtp_send(args: argparse.Namespace) -> None:
 
     client = smtp_connect(args)
     try:
-        client.send_message(msg)
+        refused = client.send_message(msg)
         sent: dict[str, Any] = {"from": sender, "to": args.to, "subject": args.subject}
         if attachments:
             sent["attachments"] = attachments
+        if refused:
+            sent["refused"] = {
+                address: {"code": code, "response": decode_text(response)}
+                for address, (code, response) in refused.items()
+            }
         emit({"ok": True, "sent": sent})
     finally:
         client.quit()
