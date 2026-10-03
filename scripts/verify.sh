@@ -22,6 +22,7 @@ print('python-ast: PASS')
 PY
 
 python -m unittest discover -s tests -v
+python -m unittest discover -s mail-cli/tests -v
 python scripts/generate_verifier.py --check
 python scripts/verify_docs.py --repo . --completion --json
 python dsh-doc-audits/scripts/repo_docs.py verify --repo . --json

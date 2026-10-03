@@ -6,6 +6,7 @@ Reusable Agent Skills maintained by `relus-cy`. Each skill is a top-level direct
 | --- | --- |
 | `dsh-doc-audits` | Original, documented below |
 | `recall` | Original; manual-only (`/recall`), see [recall](#recall) |
+| `mail-cli` | User-provided email CLI with attachment enhancements and a portable skill; see [mail-cli](mail-cli/README.md) |
 | `create-verification-skill`, `maintain-verification-skill` | Vendored from [pstack](https://github.com/cursor/plugins/tree/main/pstack) with local patches; see [vendor sync](docs/runbooks/vendor-sync.md) |
 
 ## dsh-doc-audits · 0.3.0

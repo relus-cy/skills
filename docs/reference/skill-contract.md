@@ -28,8 +28,16 @@ The optional external-code mapping and independent Git range flags extend single
 
 `recall/` is independent of `dsh-doc-audits`. `disable-model-invocation: true` keeps it manual-only. Its stable interface is `recall/scripts/recall.py` (`list`, `show`, the `RECALL_*_ROOT` store overrides and the `--json` fields); `--help` owns flag details and `tests/test_recall.py` pins behavior. It only reads transcript stores and runs read-only `git` in the target; output is redacted before printing.
 
+## mail-cli
+
+`mail-cli/` is an independent, self-contained mailbox skill. Its [entry point](../../mail-cli/SKILL.md) owns activation, authorization boundaries, and the environment-only credential workflow. The bundled `scripts/mail_cli.py` exposes IMAP/SMTP operations with JSON output; its `--help` owns CLI flags, and `mail-cli/tests/` verifies the public CLI through temporary local mail servers. Copy or sync the complete `mail-cli/` directory; [its guide](../../mail-cli/README.md) owns GitHub handoff and setup instructions.
+
+Handled I/O and invalid-value exceptions return one JSON error on stdout and exit 1. IMAP/SMTP ports are validated in the range 1–65535 before connecting. Help and argument-syntax errors retain argparse's plain-text interface; callers inspect both exit status and the JSON `ok` field when present.
+
 ## Distribution
 
 Copy or sync the whole `dsh-doc-audits/` directory, including scripts, schemas and references. A target's standalone verifier does not need that directory. The maintained source, templates and local generated verifier must remain consistent.
 
 Skillshare 0.23.1 scans bundled Python as instruction text: its `prompt-injection-1` rule misclassifies a standalone `root: Path` parameter declaration as a role label. The private link-check helper uses `repo_root` to avoid that ambiguity without changing audit rules or thresholds. Exercise the complete bundle through installation as well as running source tests; installed CLI checks must cover both accepted and rejected inputs.
+
+The same false positive affects typed local variables: the mailbox CLI uses `auth_store_root` for its auth-store lock path. Its remaining subprocess findings cover optional OpenSSL calls and the CLI acceptance-test harness; audit thresholds and rules remain unchanged.
