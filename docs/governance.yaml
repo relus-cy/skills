@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "skill_version": "0.3.0",
+  "skill_version": "0.4.0",
   "profile": "skill-repository",
   "project": "skills",
   "authority": {
@@ -71,8 +71,8 @@
     {
       "name": "skill-interface",
       "code": [
-        "*/SKILL.md",
-        "*/agents/**"
+        "skills/*/SKILL.md",
+        "skills/*/agents/**"
       ],
       "docs": [
         "README.md",
@@ -83,8 +83,9 @@
     {
       "name": "governance-cli-and-assets",
       "code": [
-        "dsh-doc-audits/scripts/**",
-        "dsh-doc-audits/assets/**"
+        "skills/dsh-doc-audits/scripts/**",
+        "skills/dsh-doc-audits/assets/**",
+        "scripts/generate_verifier.py"
       ],
       "docs": [
         "docs/subsystems/governance-cli.md",
@@ -95,7 +96,7 @@
     {
       "name": "governance-method",
       "code": [
-        "dsh-doc-audits/references/**"
+        "skills/dsh-doc-audits/references/**"
       ],
       "docs": [
         "docs/architecture.md",
@@ -108,7 +109,6 @@
       "code": [
         ".github/workflows/**",
         "scripts/verify.sh",
-        "pyproject.toml",
         "Makefile"
       ],
       "docs": [

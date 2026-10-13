@@ -40,7 +40,7 @@ The portable skill does not require:
 - optional retention of shipped plans under declared historical tiers (DSH treats `docs/` scratch as expiring);
 - a bootstrap core with tiers created when content first needs them (DSH repositories carry the full structure).
 
-DeepSeek Harness is MIT-licensed. Repository attribution is recorded in `THIRD_PARTY_NOTICES.md`.
+DeepSeek Harness is MIT-licensed. Attribution is recorded in the bundle's `NOTICE.md`.
 
 ## Matt Pocock workflow compatibility
 

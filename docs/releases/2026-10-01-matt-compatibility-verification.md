@@ -38,7 +38,7 @@ The optional bundled skill-creator `quick_validate.py` could not start because t
 
 ## Consumer hand-back
 
-Use version 0.3.0 of the complete bundle. The authoritative [glossary and Matt layout contract](../../dsh-doc-audits/references/repository-contract.md#glossary-authority) includes the partial manifest example: merge `authority.glossary: GLOSSARY.md` and the `GLOSSARY.md`, `docs/adr/**`, `docs/agents/**` current-tier entries into the existing configuration. Preserve unrelated policy. Existing repositories update these mappings through sync or migration; generated-only upgrade cannot rewrite them.
+Use version 0.3.0 of the complete bundle. The authoritative [glossary and Matt layout contract](../../skills/dsh-doc-audits/references/repository-contract.md#glossary-authority) includes the partial manifest example: merge `authority.glossary: GLOSSARY.md` and the `GLOSSARY.md`, `docs/adr/**`, `docs/agents/**` current-tier entries into the existing configuration. Preserve unrelated policy. Existing repositories update these mappings through sync or migration; generated-only upgrade cannot rewrite them.
 
 There is no `upgrade` CLI subcommand. After obtaining exact generated verifier bytes and preparing a proposal, run:
 
@@ -49,4 +49,4 @@ python <skill-dir>/scripts/repo_docs.py review-pack --repo <repo> --plan <contro
 python <skill-dir>/scripts/repo_docs.py apply --repo <repo> --plan <control>/plan.json --review <control>/review.json --dry-run --json
 ```
 
-Use a clean linked worktree, or add `--allow-in-place` only for an authorized clean ordinary checkout. Follow the [workflow](../../dsh-doc-audits/references/workflow.md#upgrade) for application and verification. Commit and installed-copy synchronization still require the owner's review of the diff.
+Use a clean linked worktree, or add `--allow-in-place` only for an authorized clean ordinary checkout. Follow the [workflow](../../skills/dsh-doc-audits/references/workflow.md#upgrade) for application and verification. Commit and installed-copy synchronization still require the owner's review of the diff.

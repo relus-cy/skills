@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "dsh-doc-audits" / "scripts" / "repo_docs.py"
+MODULE_PATH = ROOT / "skills" / "dsh-doc-audits" / "scripts" / "repo_docs.py"
 
 
 def load_module():

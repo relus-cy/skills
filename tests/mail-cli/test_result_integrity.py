@@ -15,7 +15,7 @@ import unittest
 
 from test_attachments import IMAPHandler, LoopbackServer, SMTPHandler
 
-SCRIPT = Path(os.environ.get("MAIL_CLI_SCRIPT", str(Path(__file__).parents[1] / "scripts" / "mail_cli.py")))
+SCRIPT = Path(os.environ.get("MAIL_CLI_SCRIPT", str(Path(__file__).parents[2] / "skills" / "mail-cli" / "scripts" / "mail_cli.py")))
 
 
 class ResultIntegrityTests(unittest.TestCase):

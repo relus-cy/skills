@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "dsh-doc-audits"
+SKILL = ROOT / "skills" / "dsh-doc-audits"
 MODULE_PATH = SKILL / "scripts" / "repo_docs.py"
 FIXTURES = ROOT / "tests" / "fixtures"
 
@@ -106,7 +106,6 @@ class RepositoryQualityTests(unittest.TestCase):
         self.assertTrue((ROOT / ".github" / "workflows" / "ci.yml").is_file())
         self.assertTrue((ROOT / "scripts" / "verify.sh").is_file())
         self.assertTrue((ROOT / "Makefile").is_file())
-        self.assertTrue((ROOT / "pyproject.toml").is_file())
 
 
 if __name__ == "__main__":

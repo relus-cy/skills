@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "dsh-doc-audits"
+SKILL = ROOT / "skills" / "dsh-doc-audits"
 
 
 class SkillStructureTests(unittest.TestCase):
@@ -45,18 +45,20 @@ class SkillStructureTests(unittest.TestCase):
 
     def test_version_is_consistent_across_release_surfaces(self) -> None:
         skill = (SKILL / "SKILL.md").read_text(encoding="utf-8")
-        pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        cli = (SKILL / "scripts" / "repo_docs.py").read_text(encoding="utf-8")
+        guard = (SKILL / "scripts" / "workflow_guard.py").read_text(encoding="utf-8")
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         governance = (ROOT / "docs" / "governance.yaml").read_text(encoding="utf-8")
 
-        self.assertRegex(skill, r'(?m)^  version: "0\.3\.0"$')
-        self.assertRegex(pyproject, r'(?m)^version = "0\.3\.0"$')
-        self.assertIn("## 0.3.0", changelog)
-        self.assertIn('"skill_version": "0.3.0"', governance)
+        self.assertRegex(skill, r'(?m)^  version: "0\.4\.0"$')
+        self.assertRegex(cli, r'(?m)^VERSION = "0\.4\.0"$')
+        self.assertRegex(guard, r"(?m)^VERSION = '0\.4\.0'$")
+        self.assertIn("## dsh-doc-audits 0.4.0", changelog)
+        self.assertIn('"skill_version": "0.4.0"', governance)
 
-    def test_repository_has_license_and_attribution(self) -> None:
-        self.assertTrue((ROOT / "LICENSE").is_file())
-        notices = (ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8")
+    def test_installed_bundle_carries_license_and_attribution(self) -> None:
+        self.assertIn("MIT License", (SKILL / "LICENSE").read_text(encoding="utf-8"))
+        notices = (SKILL / "NOTICE.md").read_text(encoding="utf-8")
         self.assertIn("DeepSeek Harness", notices)
         self.assertIn("MIT License", notices)
 

@@ -18,7 +18,7 @@ import sys
 import tempfile
 from typing import Any
 
-VERSION = '0.3.0'
+VERSION = '0.4.0'
 SCHEMAS = Path(__file__).resolve().parents[1] / 'schemas'
 CONTROL = '.dsh-doc-audits'
 # `*` also matches this file, so Git and gitignore-aware search skip the whole directory.
