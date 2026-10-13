@@ -2,22 +2,8 @@
 
 ## pstack
 
-`create-verification-skill/` and `maintain-verification-skill/` are generated from [cursor/plugins `pstack/`](https://github.com/cursor/plugins/tree/main/pstack) at the commit pinned in `vendor/pstack/sync.json`, with the text patches listed there (install paths moved from `.cursor/skills` to `.agents/skills`; the maintenance pass makes a local commit instead of opening a PR). pstack is MIT licensed, copyright 2026 Lauren Tan; each generated directory carries the upstream `LICENSE`.
+`skills/create-verification-skill/` and `skills/maintain-verification-skill/` are generated from [cursor/plugins `pstack/`](https://github.com/cursor/plugins/tree/main/pstack) at the commit pinned in `vendor/pstack/sync.json`, with the text patches listed there (install paths moved from `.cursor/skills` to `.agents/skills`; the maintenance pass makes a local commit instead of opening a PR). pstack is MIT licensed, copyright 2026 Lauren Tan; each generated directory carries the upstream `LICENSE`.
 
-## Matt Pocock skills compatibility reference
+## dsh-doc-audits
 
-The optional Matt layout is referenced from [mattpocock/skills at `d81f3a1`](https://github.com/mattpocock/skills/tree/d81f3a183412e71a5b1e84ca21bc1a35eea03a60), whose [license](https://github.com/mattpocock/skills/blob/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/LICENSE) is MIT, copyright 2026 Matt Pocock. This repository does not redistribute Matt's skill code, templates or prose; its original interoperability rules are described in [lineage](dsh-doc-audits/references/lineage.md#matt-pocock-workflow-compatibility).
-
-## DeepSeek Harness
-
-`dsh-doc-audits` is an original portable adaptation inspired by the documentation governance model implemented by DeepSeek Harness, including its `dsh-doc` skill, documentation tier rules, and Agent Note lifecycle.
-
-DeepSeek Harness is distributed under the MIT License:
-
-> MIT License
->
-> Copyright (c) 2026 DeepSeek
->
-> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the condition that the copyright notice and permission notice are included in all copies or substantial portions of the Software.
->
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+Attribution for DeepSeek Harness and the Matt Pocock compatibility reference lives in [the skill's NOTICE](skills/dsh-doc-audits/NOTICE.md), so it travels with every installed copy.

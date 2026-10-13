@@ -11,7 +11,7 @@ import sys
 import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
-CLI=ROOT/'dsh-doc-audits/scripts/repo_docs.py'
+CLI=ROOT/'skills/dsh-doc-audits/scripts/repo_docs.py'
 
 
 def main():

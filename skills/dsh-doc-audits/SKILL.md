@@ -5,7 +5,7 @@ license: MIT
 compatibility: Python 3.11+ and Git for local checks; no model SDK or network required. Semantic review uses the host's available agent or a human reviewer.
 metadata:
   author: relus-cy
-  version: "0.3.0"
+  version: "0.4.0"
   lineage: deepseek-harness-dsh-doc
 ---
 

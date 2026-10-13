@@ -10,7 +10,7 @@ import tempfile
 import unittest
 
 
-SCRIPT = Path(os.environ.get("MAIL_CLI_SCRIPT", Path(__file__).parents[1] / "scripts" / "mail_cli.py"))
+SCRIPT = Path(os.environ.get("MAIL_CLI_SCRIPT", Path(__file__).parents[2] / "skills" / "mail-cli" / "scripts" / "mail_cli.py"))
 
 
 class RuntimeErrorTests(unittest.TestCase):

@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-CLI = ROOT / 'dsh-doc-audits/scripts/repo_docs.py'
+CLI = ROOT / 'skills/dsh-doc-audits/scripts/repo_docs.py'
 GUARD = CLI.with_name('workflow_guard.py')
 CONTROL_DIR = '.dsh-doc-audits'
 

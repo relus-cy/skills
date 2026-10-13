@@ -16,8 +16,8 @@ import unittest
 from test_reviewed_workflow import load_guard, git, write
 
 ROOT = Path(__file__).resolve().parents[1]
-CLI = ROOT / 'dsh-doc-audits/scripts/repo_docs.py'
-TEMPLATE = ROOT / 'dsh-doc-audits/assets/repo-governance/docs/governance.yaml'
+CLI = ROOT / 'skills/dsh-doc-audits/scripts/repo_docs.py'
+TEMPLATE = ROOT / 'skills/dsh-doc-audits/assets/repo-governance/docs/governance.yaml'
 
 
 class GlossaryCompatibilityTests(unittest.TestCase):

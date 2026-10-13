@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "dsh-doc-audits"
+SKILL = ROOT / "skills" / "dsh-doc-audits"
 ASSETS = SKILL / "assets" / "repo-governance"
 MODULE_PATH = SKILL / "scripts" / "repo_docs.py"
 

@@ -22,7 +22,7 @@ from email.message import EmailMessage
 from email.parser import BytesParser
 
 
-SCRIPT = Path(os.environ.get("MAIL_CLI_SCRIPT", str(Path(__file__).parents[1] / "scripts" / "mail_cli.py")))
+SCRIPT = Path(os.environ.get("MAIL_CLI_SCRIPT", str(Path(__file__).parents[2] / "skills" / "mail-cli" / "scripts" / "mail_cli.py")))
 BINARY = b"\x00\xff\x80\r\n\x01binary attachment\x00"
 
 

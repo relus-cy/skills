@@ -37,7 +37,7 @@ class GovernanceCLIRegressionTests(unittest.TestCase):
         return self.git(repo, 'rev-parse', 'HEAD')
 
     def cli(self, local=False, impact=False, extra=()):
-        command = [sys.executable, str(ROOT / ('scripts/verify_docs.py' if local else 'dsh-doc-audits/scripts/repo_docs.py'))]
+        command = [sys.executable, str(ROOT / ('scripts/verify_docs.py' if local else 'skills/dsh-doc-audits/scripts/repo_docs.py'))]
         if not local:
             command += ['impact' if impact else 'verify']
         command += ['--repo', str(self.repo), '--json']

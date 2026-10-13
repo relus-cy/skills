@@ -1,10 +1,18 @@
 # Changelog
 
+Entries for `dsh-doc-audits` carry its version; other skills are unversioned.
+
 ## Unreleased
 
+- Move every installable skill under `skills/<name>/`; each directory is a complete bundle that can be installed alone. Tests, development tools and design records stay at the repository root and are never installed. `mail-cli` tests move to `tests/mail-cli/`, and vendored skills are generated into `skills/`. Remove the unused root `pyproject.toml`; `dsh-doc-audits` declares its version in `SKILL.md`.
 - Add the manual-only `recall` skill: `recall.py list` and `show` read Claude Code, Codex and Pi transcripts for one repository (cwd, main worktree or Codex `repository_url` match), keep real user messages and each turn's final reply, merge paginated Codex sessions, extract commit SHAs and GitHub PR/issue URLs, redact secrets, and warn on transcript files that no longer parse.
 
-## 0.3.0 — 2026-10-01
+## dsh-doc-audits 0.4.0 — 2026-10-13
+
+- The bundle moves to `skills/dsh-doc-audits/` and carries its own `LICENSE` and `NOTICE.md`, so every installed copy keeps its attribution.
+- Fix path patterns with a wildcard before `/**` (for example `*/agents/**`): they were compared as a literal prefix and matched nothing, so impact mappings, tiers and exclusions using them were silently inert. Exclusions such as `**/__pycache__/**` now take effect; review mappings that relied on the old behavior.
+
+## dsh-doc-audits 0.3.0 — 2026-10-01
 
 - Resolve optional `authority.glossary` consistently across inspection, planning and reviewed writes; recognize `GLOSSARY.md` and legacy `CONTEXT.md` when unset, and leave dual-name authority conflicts for explicit resolution.
 - Support Matt workflow coexistence: template tiers cover ADRs and agent guides, existing owners and the `Agent skills` block stay preserved, and external tracker close-out writes durable conclusions back to repository owners. ADRs use the existing Agent Notes opt-out.
@@ -17,7 +25,7 @@
 - Bootstrap installs only a core (entry pages, documentation standard, manifest, verifier, and CI where `.github/workflows/` exists). Other tiers move to `assets/skeletons/` and are created when they first have content, following a "Create when" column in the template's `docs/AGENTS.md`. New warnings `documentation-untiered` and `doc-owner-missing` signal content that has outgrown its home; a hard mapping without any owner yet warns instead of blocking.
 - `verify` and `audit` output labels results `structure-only`. The references document the uncommitted-work path, checkout-bound previews and the Agent Notes opt-out. The template's documentation standard requires writing shipped plans' conclusions back to current owners.
 
-## 0.2.0 — 2026-09-23
+## dsh-doc-audits 0.2.0 — 2026-09-23
 
 - Kept the skill thin and project-neutral; models supply owner boundaries rather than fixed domain trees.
 - Added read-only doctor, snapshot-bound prepared plans, compact review packages and exact-scoped apply with a dry run.
@@ -28,7 +36,7 @@
 - Explicitly labeled self-review, synthetic tests, declared reviewer attestations and unperformed independent model assessment.
 
 
-## 0.1.0 — 2026-09-23
+## dsh-doc-audits 0.1.0 — 2026-09-23
 
 - Added the standards-compliant `dsh-doc-audits` Agent Skill at the repository root for Skillshare-compatible discovery.
 - Added `bootstrap`, `migrate`, `sync`, `audit`, and `upgrade` guidance derived from the portable governance core of DeepSeek Harness `dsh-doc`.

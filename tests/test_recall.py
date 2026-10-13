@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "recall"
+SKILL = ROOT / "skills" / "recall"
 SCRIPT = SKILL / "scripts" / "recall.py"
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "recall"
 

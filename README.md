@@ -1,15 +1,31 @@
 # skills
 
-Reusable Agent Skills maintained by `relus-cy`. Each skill is a top-level directory for simple discovery and synchronization.
+Reusable Agent Skills maintained by `relus-cy`. Every installable skill lives in `skills/<name>/`, and each of those directories is a complete bundle you can install on its own. Tests, development tools and design records stay at the repository root and are never installed.
 
 | Skill | Origin |
 | --- | --- |
-| `dsh-doc-audits` | Original, documented below |
+| `dsh-doc-audits` | Original, documented below; carries its own [license](skills/dsh-doc-audits/LICENSE) and [notices](skills/dsh-doc-audits/NOTICE.md) |
 | `recall` | Original; manual-only (`/recall`), see [recall](#recall) |
-| `mail-cli` | User-provided email CLI with attachment enhancements and a portable skill; see [mail-cli](mail-cli/README.md) |
+| `mail-cli` | User-provided email CLI with attachment enhancements and a portable skill; see [mail-cli](skills/mail-cli/README.md) |
 | `create-verification-skill`, `maintain-verification-skill` | Vendored from [pstack](https://github.com/cursor/plugins/tree/main/pstack) with local patches; see [vendor sync](docs/runbooks/vendor-sync.md) |
 
-## dsh-doc-audits · 0.3.0
+## Install
+
+Install everything, or pick one skill by its directory:
+
+```bash
+# skillshare
+skillshare install github.com/relus-cy/skills --all
+skillshare install relus-cy/skills/skills/dsh-doc-audits
+
+# skills CLI (Claude Code, Codex, Cursor and others)
+npx skills add relus-cy/skills
+npx skills add relus-cy/skills --skill dsh-doc-audits
+```
+
+Copying a `skills/<name>/` directory into your agent's skills folder works as well.
+
+## dsh-doc-audits · 0.4.0
 
 A thin, portable adaptation of DeepSeek Harness documentation governance: one current owner per durable fact; separate current behavior, decision rationale and historical work. A capable model decides how to split a project. Local tools validate evidence, reviewed plans, write boundaries and documentation readiness.
 
@@ -17,11 +33,11 @@ Use it to initialize a documentation scaffold, migrate an existing repository, s
 
 ## recall
 
-Rebuilds recent working context from local Claude Code, Codex and Pi transcripts, then has the agent verify it against live `git`/`gh` state and write a short resume brief. It never reads another project unless asked, hides subagent sessions by default and redacts secrets in its output. `recall/scripts/recall.py` is a read-only, standard-library CLI; `python3 recall/scripts/recall.py list --help` documents scope, time window, store overrides (`RECALL_CLAUDE_ROOT`, `RECALL_CODEX_ROOT`, `RECALL_PI_ROOT`) and output. The workflow and brief format live in [its skill entry](recall/SKILL.md).
+Rebuilds recent working context from local Claude Code, Codex and Pi transcripts, then has the agent verify it against live `git`/`gh` state and write a short resume brief. It never reads another project unless asked, hides subagent sessions by default and redacts secrets in its output. `skills/recall/scripts/recall.py` is a read-only, standard-library CLI; `python3 skills/recall/scripts/recall.py list --help` documents scope, time window, store overrides (`RECALL_CLAUDE_ROOT`, `RECALL_CODEX_ROOT`, `RECALL_PI_ROOT`) and output. The workflow and brief format live in [its skill entry](skills/recall/SKILL.md).
 
 ## Install and use
 
-Sync or copy the complete `dsh-doc-audits/` directory to your Agent Skills location. Keep its scripts, schemas, references and assets together. Then give your agent this request:
+Install `skills/dsh-doc-audits/` as shown above, or copy the complete directory to your Agent Skills location. Keep its scripts, schemas, references and assets together. Then give your agent this request:
 
 ```text
 Use dsh-doc-audits to migrate this repository's documentation. Derive the
@@ -33,11 +49,11 @@ Report actual verification and any missing independent assessment.
 For read-only inspection from this checkout:
 
 ```bash
-python dsh-doc-audits/scripts/repo_docs.py doctor --repo /path/to/project --json
-python dsh-doc-audits/scripts/repo_docs.py plan --repo /path/to/project --json
+python skills/dsh-doc-audits/scripts/repo_docs.py doctor --repo /path/to/project --json
+python skills/dsh-doc-audits/scripts/repo_docs.py plan --repo /path/to/project --json
 ```
 
-`plan` starts as an unexecutable draft. The agent authors a proposal; `plan --proposal` seals it, `review-pack` supplies a focused review diff, and `apply` requires a separate approval of the unchanged plan. See the [skill entry](dsh-doc-audits/SKILL.md) and [review/application contract](dsh-doc-audits/references/authority-review.md).
+`plan` starts as an unexecutable draft. The agent authors a proposal; `plan --proposal` seals it, `review-pack` supplies a focused review diff, and `apply` requires a separate approval of the unchanged plan. See the [skill entry](skills/dsh-doc-audits/SKILL.md) and [review/application contract](skills/dsh-doc-audits/references/authority-review.md).
 
 ## What is verified
 

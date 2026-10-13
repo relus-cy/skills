@@ -2,9 +2,13 @@
 
 Status: current authority
 
+## Layout
+
+Every installable skill is a complete bundle in `skills/<name>/`: the directory name matches the `name` frontmatter field, and nothing in it refers to files outside it. Tests, fixtures, development scripts and design records live at the repository root (`tests/`, `scripts/`, `docs/`, `.agents/notes/`) so installers never copy them. Installers that discover skills by scanning for `SKILL.md` therefore find exactly these bundles.
+
 ## Interface
 
-`dsh-doc-audits/` is a top-level, self-contained Agent Skills bundle. `SKILL.md` owns activation and short task routing; references own detailed judgment criteria; JSON Schemas own control-artifact shape; scripts gather facts and enforce deterministic boundaries. The format follows the published Agent Skills specification. There are no mandatory external skills, model APIs or network services.
+`skills/dsh-doc-audits/` is a self-contained Agent Skills bundle that carries its own `LICENSE` and `NOTICE.md`. `SKILL.md` owns activation and short task routing; references own detailed judgment criteria; JSON Schemas own control-artifact shape; scripts gather facts and enforce deterministic boundaries. The format follows the published Agent Skills specification. There are no mandatory external skills, model APIs or network services.
 
 ## Modes and tools
 
@@ -20,23 +24,23 @@ Normal audit is read-only. Prepared plans bind the checkout root and the exact b
 
 Python 3.11+ and Git. JSON-compatible YAML remains the manifest encoding. Control JSON schemas reject missing and unexpected fields. Plan, review-package and review-result schemas are at version 2; version 1 plans and reviews must be prepared and reviewed again. Existing 0.1.0 manifests remain valid when they provide the original required fields with valid nested types. `exclude` is optional. Incomplete scaffolding can pass a structural bootstrap check with warnings and cannot pass completion.
 
-Version 0.3.0 supports optional `authority.glossary` and Matt-style repository owners without adopting an external ticket workflow. The [repository contract](../../dsh-doc-audits/references/repository-contract.md#glossary-authority) owns glossary fallback, tier registration, ADR opt-out and tracker boundaries. Existing `CONTEXT.md` repositories remain supported. External tracker close-out is an agent sync responsibility, not a local-verifier guarantee.
+Version 0.3.0 added optional `authority.glossary` and Matt-style repository owners without adopting an external ticket workflow. The [repository contract](../../skills/dsh-doc-audits/references/repository-contract.md#glossary-authority) owns glossary fallback, tier registration, ADR opt-out and tracker boundaries. Existing `CONTEXT.md` repositories remain supported. External tracker close-out is an agent sync responsibility, not a local-verifier guarantee.
 
-The optional external-code mapping and independent Git range flags extend single-repository impact checks without changing their defaults; see the [mapping contract](../../dsh-doc-audits/references/repository-contract.md#hard-and-soft-mappings). Local link verification now checks supported Markdown section fragments as well as files.
+The optional external-code mapping and independent Git range flags extend single-repository impact checks without changing their defaults; see the [mapping contract](../../skills/dsh-doc-audits/references/repository-contract.md#hard-and-soft-mappings). Local link verification now checks supported Markdown section fragments as well as files.
 
 ## recall
 
-`recall/` is independent of `dsh-doc-audits`. `disable-model-invocation: true` keeps it manual-only. Its stable interface is `recall/scripts/recall.py` (`list`, `show`, the `RECALL_*_ROOT` store overrides and the `--json` fields); `--help` owns flag details and `tests/test_recall.py` pins behavior. It only reads transcript stores and runs read-only `git` in the target; output is redacted before printing.
+`skills/recall/` is independent of `dsh-doc-audits`. `disable-model-invocation: true` keeps it manual-only. Its stable interface is `skills/recall/scripts/recall.py` (`list`, `show`, the `RECALL_*_ROOT` store overrides and the `--json` fields); `--help` owns flag details and `tests/test_recall.py` pins behavior. It only reads transcript stores and runs read-only `git` in the target; output is redacted before printing.
 
 ## mail-cli
 
-`mail-cli/` is an independent, self-contained mailbox skill. Its [entry point](../../mail-cli/SKILL.md) owns activation, authorization boundaries, and the environment-only credential workflow. The bundled `scripts/mail_cli.py` exposes IMAP/SMTP operations with JSON output; its `--help` owns CLI flags, and `mail-cli/tests/` verifies the public CLI through temporary local mail servers. Copy or sync the complete `mail-cli/` directory; [its guide](../../mail-cli/README.md) owns GitHub handoff and setup instructions.
+`skills/mail-cli/` is an independent, self-contained mailbox skill. Its [entry point](../../skills/mail-cli/SKILL.md) owns activation, authorization boundaries, and the environment-only credential workflow. The bundled `scripts/mail_cli.py` exposes IMAP/SMTP operations with JSON output; its `--help` owns CLI flags, and `tests/mail-cli/` verifies the public CLI through temporary local mail servers. Copy or sync the complete `skills/mail-cli/` directory; [its guide](../../skills/mail-cli/README.md) owns GitHub handoff and setup instructions.
 
 Handled I/O and invalid-value exceptions return one JSON error on stdout and exit 1. IMAP/SMTP ports are validated in the range 1–65535 before connecting. Help and argument-syntax errors retain argparse's plain-text interface; callers inspect both exit status and the JSON `ok` field when present.
 
 ## Distribution
 
-Copy or sync the whole `dsh-doc-audits/` directory, including scripts, schemas and references. A target's standalone verifier does not need that directory. The maintained source, templates and local generated verifier must remain consistent.
+Copy or sync the whole `skills/dsh-doc-audits/` directory, including scripts, schemas and references. A target's standalone verifier does not need that directory. The maintained source, templates and local generated verifier must remain consistent.
 
 Skillshare 0.23.1 scans bundled Python as instruction text: its `prompt-injection-1` rule misclassifies a standalone `root: Path` parameter declaration as a role label. The private link-check helper uses `repo_root` to avoid that ambiguity without changing audit rules or thresholds. Exercise the complete bundle through installation as well as running source tests; installed CLI checks must cover both accepted and rejected inputs.
 

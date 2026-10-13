@@ -5,7 +5,7 @@ Last reviewed: 2026-10-01
 
 ## Purpose and boundaries
 
-The repository distributes independent, top-level Agent Skills. Vendored third-party skills are generated from a pinned upstream plus local text patches by `scripts/sync_vendor.py`; their [sync procedure](runbooks/vendor-sync.md) owns the details. `dsh-doc-audits` applies the DSH one-owner documentation method across projects without embedding an application's business domains. Models decide the useful split; target repositories retain their facts and policy. `recall` is a separate read-only skill whose script mines local agent transcripts; the agent verifies its findings against live Git state.
+The repository distributes independent Agent Skills, each a complete bundle in `skills/<name>/`; tests, tools and records at the root are never installed. Vendored third-party skills are generated from a pinned upstream plus local text patches by `scripts/sync_vendor.py`; their [sync procedure](runbooks/vendor-sync.md) owns the details. `dsh-doc-audits` applies the DSH one-owner documentation method across projects without embedding an application's business domains. Models decide the useful split; target repositories retain their facts and policy. `recall` is a separate read-only skill whose script mines local agent transcripts; the agent verifies its findings against live Git state.
 
 ## Components
 
@@ -41,4 +41,4 @@ Plans and reviewer records are untrusted input until schema, path and digest che
 
 ## Extension policy
 
-Add a deterministic check only when a concrete failure justifies it. Keep semantic rules short and generic. Project-specific migration decisions stay in the target. No fixed WebApp tree, automatic hooks or mandatory collection of external frameworks is imposed. Matt-style domain and workflow owners coexist through the [repository contract](../dsh-doc-audits/references/repository-contract.md#matt-skills-coexistence); external workflow state stays outside the local verifier. The [compatibility decision](../.agents/notes/implemented/process/2026-10-01-matt-workflow-coexistence.md) records this boundary.
+Add a deterministic check only when a concrete failure justifies it. Keep semantic rules short and generic. Project-specific migration decisions stay in the target. No fixed WebApp tree, automatic hooks or mandatory collection of external frameworks is imposed. Matt-style domain and workflow owners coexist through the [repository contract](../skills/dsh-doc-audits/references/repository-contract.md#matt-skills-coexistence); external workflow state stays outside the local verifier. The [compatibility decision](../.agents/notes/implemented/process/2026-10-01-matt-workflow-coexistence.md) records this boundary.

@@ -83,7 +83,7 @@ def update(root: Path, name: str, ref: str, source: Path | None) -> str:
         stage.mkdir()
         build(cfg, source, sha, stage)
         for skill in cfg["skills"]:
-            dest = root / skill
+            dest = root / "skills" / skill
             if dest.exists():
                 shutil.rmtree(dest)
             shutil.copytree(stage / skill, dest)

@@ -20,7 +20,7 @@ python scripts/sync_vendor.py update pstack --ref <sha>
 git diff --stat
 ```
 
-The script fetches only the configured paths, copies each skill with the upstream `LICENSE`, applies every patch, stamps a generated-by line into each `SKILL.md` frontmatter, and only then replaces the top-level skill directories and the pin.
+The script fetches only the configured paths, copies each skill with the upstream `LICENSE`, applies every patch, stamps a generated-by line into each `SKILL.md` frontmatter, and only then replaces the skill directories under `skills/` and the pin.
 
 ## Failure and recovery
 

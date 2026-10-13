@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
+export PYTHONDONTWRITEBYTECODE=1  # keep __pycache__ out of installable bundles
 
 if [[ -n "$(git ls-files '*.pyc' '__pycache__')" ]]; then
   echo "Tracked Python bytecode is forbidden." >&2
@@ -22,11 +23,11 @@ print('python-ast: PASS')
 PY
 
 python -m unittest discover -s tests -v
-python -m unittest discover -s mail-cli/tests -v
+python -m unittest discover -s tests/mail-cli -v
 python scripts/generate_verifier.py --check
 python scripts/verify_docs.py --repo . --completion --json
-python dsh-doc-audits/scripts/repo_docs.py verify --repo . --json
-python dsh-doc-audits/scripts/repo_docs.py audit --repo . --json
+python skills/dsh-doc-audits/scripts/repo_docs.py verify --repo . --json
+python skills/dsh-doc-audits/scripts/repo_docs.py audit --repo . --json
 git diff --check
 
 echo "verify: PASS"

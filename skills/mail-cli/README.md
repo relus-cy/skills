@@ -4,9 +4,9 @@ A portable email skill with a standalone Python CLI. Read mail over IMAP, send m
 
 ## Give it to an agent through GitHub
 
-This skill is maintained in the `mail-cli/` directory of `relus-cy/skills`. After publishing the change, share the GitHub directory link with your agent and ask:
+This skill is maintained in the `skills/mail-cli/` directory of `relus-cy/skills`. After publishing the change, share the GitHub directory link with your agent and ask:
 
-> Read `mail-cli/SKILL.md` in the `relus-cy/skills` repository. Acquire the complete `mail-cli/` directory so its bundled script is available, and use it for my mailbox tasks. Start by checking the runtime and mailbox setup. Use credentials configured locally for this agent.
+> Read `skills/mail-cli/SKILL.md` in the `relus-cy/skills` repository. Acquire the complete `skills/mail-cli/` directory so its bundled script is available, and use it for my mailbox tasks. Start by checking the runtime and mailbox setup. Use credentials configured locally for this agent.
 
 An agent that supports the [Agent Skills format](https://agentskills.io/specification) can install this directory as a skill folder named `mail-cli`. An agent with shell access can also read the instructions and run the CLI directly. A GitHub URL provides the files; it does not by itself install a skill or grant mailbox access. Private repositories require the receiving agent to have repository access.
 
@@ -16,7 +16,7 @@ The agent-facing entry point is [`SKILL.md`](SKILL.md). Share its GitHub file li
 
 Requires Python 3.10+ on macOS/Linux and access to your mail servers. There are no third-party Python dependencies. The optional encrypted credential store additionally needs OpenSSL.
 
-From the skill directory (`mail-cli/` inside the repository):
+From the skill directory (`skills/mail-cli/` inside the repository):
 
 ```sh
 python3 scripts/mail_cli.py --help
@@ -63,8 +63,10 @@ If an agent exposes only tool connections, an [MCP server](https://modelcontextp
 
 ## Tests and limits
 
+From the repository root (tests are not part of the installed skill):
+
 ```sh
-python3 -m unittest discover -s tests -v
+python3 -m unittest discover -s tests/mail-cli -v
 ```
 
 The acceptance suite uses subprocess CLI calls and temporary localhost IMAP/SMTP servers. It checks actual MIME data, downloaded bytes, read-only IMAP use, safe filenames, size limits, `.eml` handling, and failure behavior. Real provider accounts require a separate connectivity test with your own credentials.

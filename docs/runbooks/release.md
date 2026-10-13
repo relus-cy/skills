@@ -15,7 +15,7 @@ bash scripts/verify.sh
 python scripts/smoke_reviewed_workflow.py
 ```
 
-The first command checks syntax, the complete test suite, generated asset freshness, documentation readiness and corpus checks. The second exercises the CLI in a disposable Git repository with explicitly synthetic review records. Neither proves a real model's semantic quality. Record separately whether an independent model assessment was performed.
+The first command checks syntax, every test suite (`tests/` and `tests/mail-cli/`), generated asset freshness, documentation readiness and corpus checks. It disables Python bytecode writes so no `__pycache__` lands inside `skills/`, whose directories are published as installable bundles. The second exercises the CLI in a disposable Git repository with explicitly synthetic review records. Neither proves a real model's semantic quality. Record separately whether an independent model assessment was performed.
 
 ## Package
 
@@ -24,7 +24,7 @@ Use a named release branch. Replace the branch and output names deliberately:
 ```bash
 git bundle create ../skills-release.bundle <release-branch>
 git bundle verify ../skills-release.bundle
-git archive --format=zip --prefix=skills/ -o ../skills-release.zip <release-branch>
+git archive --format=zip --prefix=relus-skills/ -o ../skills-release.zip <release-branch>
 ```
 
 A full-history bundle allows clean import. Verify it from a repository, and test a fresh clone. Compute SHA-256 checksums of the deliverables. The bundle branch must descend from the previously published commit.

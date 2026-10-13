@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "dsh-doc-audits" / "scripts" / "repo_docs.py"
+MODULE_PATH = ROOT / "skills" / "dsh-doc-audits" / "scripts" / "repo_docs.py"
 
 
 def load_module():
@@ -343,6 +343,30 @@ class ImpactTests(unittest.TestCase):
 
             self.assertFalse(result["ok"])
             self.assertIn("hard-doc-impact-missing", {f["code"] for f in result["findings"]})
+
+    def test_wildcard_directory_before_double_star_matches_nested_code(self) -> None:
+        # Regression: "*/agents/**" was compared as the literal prefix "*/agents" and matched nothing.
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            create_valid_repo(repo)
+            value = manifest()
+            value["impact_mappings"][0]["code"] = ["*/agents/**"]
+            write(repo / "docs" / "governance.yaml", json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+            self._git(repo, "init", "-b", "main")
+            self._git(repo, "config", "user.name", "Test")
+            self._git(repo, "config", "user.email", "test@example.com")
+            write(repo / "skills" / "demo" / "agents" / "openai.yaml", "a: 1\n")
+            self._git(repo, "add", ".")
+            self._git(repo, "commit", "-m", "base")
+            base = self._git(repo, "rev-parse", "HEAD")
+            write(repo / "skills" / "demo" / "agents" / "openai.yaml", "a: 2\n")
+            self._git(repo, "add", ".")
+            self._git(repo, "commit", "-m", "change agent metadata")
+
+            result = self.repo_docs.impact_repository(repo, base=base)
+
+            self.assertFalse(result["ok"])
+            self.assertEqual([f["code"] for f in result["findings"]], ["hard-doc-impact-missing"])
 
     def test_mapping_without_any_owner_asks_for_one_instead_of_blocking(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
