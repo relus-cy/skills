@@ -61,6 +61,17 @@ This is a partial example, not a complete manifest. New bootstrap templates alre
 
 Specs and tickets may live in an external issue tracker. Its workflow, contents and closure state are outside the local verifier's scope. The agent's sync workflow owns the close-out check in [workflow](workflow.md#sync); no tracker client, credentials or additional skills are required by dsh.
 
+### Workflow setup gap
+
+dsh does not configure issue trackers, triage labels or branch rules. A repository adopting dsh may still lack that collaboration setup, so ask about it once, on the first run only. The first run is any run where `doctor` reports `governance_manifest: false`. After bootstrap or migration creates `docs/governance.yaml`, sync, audit and upgrade do not ask.
+
+On the first run, ask the user one question before any write or with audit findings: does the project need a shared issue and pull-request workflow? Add a recommendation only when the repository shows Matt's skills installed and unconfigured:
+
+- Installed: `skills-lock.json` has an entry whose `source` is `mattpocock/skills`, or a project skill directory such as `.claude/skills/` or `.agents/skills/` contains `setup-matt-pocock-skills`.
+- Unconfigured: neither root `AGENTS.md` nor root `CLAUDE.md` has an `## Agent skills` section.
+
+In that case, recommend that the user run `/setup-matt-pocock-skills`, and name the evidence. Otherwise, say that the project's contributing guide or its chosen workflow skill owns that setup. dsh never runs a setup skill, installs one, creates `docs/agents/`, writes the `## Agent skills` block, or changes tracker labels. Record the answer, or a deferral, under the report's limitations, then continue.
+
 ## Hard and soft mappings
 
 A hard mapping covers contracts where stale docs create meaningful operational or integration risk: public APIs, configuration, deployment, recovery, migrations, storage formats, security controls, or published workflows. A branch that changes mapped code must also change at least one owner or stop for human review. The current verifier does not parse no-impact waivers.

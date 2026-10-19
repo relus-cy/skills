@@ -4,6 +4,8 @@
 
 Use the smallest workflow that covers the request. Directory names, document counts and business domains are model judgments grounded in the repository. The tool does not choose a model, load external architecture frameworks or call another skill automatically.
 
+On the first run in a repository, ask once about collaboration setup, following the [workflow setup gap](repository-contract.md#workflow-setup-gap) rules. dsh recommends a setup; it never runs one.
+
 ## Bootstrap and migration
 
 1. Run `doctor` and inspect root/local instructions, code, tests and current documents. Dirty trees are inspectable but cannot be applied, even as a dry run. Use a separate clean worktree or explicitly authorized in-place checkout. For work in progress, commit it, create the worktree from that commit, then author the proposal there ([migration](migration.md)).

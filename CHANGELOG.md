@@ -6,6 +6,7 @@ Entries for `dsh-doc-audits` carry its version; other skills are unversioned.
 
 - Move every installable skill under `skills/<name>/`; each directory is a complete bundle that can be installed alone. Tests, development tools and design records stay at the repository root and are never installed. `mail-cli` tests move to `tests/mail-cli/`, and vendored skills are generated into `skills/`. Remove the unused root `pyproject.toml`; `dsh-doc-audits` declares its version in `SKILL.md`.
 - Add the manual-only `recall` skill: `recall.py list` and `show` read Claude Code, Codex and Pi transcripts for one repository (cwd, main worktree or Codex `repository_url` match), keep real user messages and each turn's final reply, merge paginated Codex sessions, extract commit SHAs and GitHub PR/issue URLs, redact secrets, and warn on transcript files that no longer parse.
+- dsh-doc-audits asks once about collaboration setup on a repository's first run (no `docs/governance.yaml`). When `skills-lock.json` or a project skill directory shows Matt's skills installed without an `## Agent skills` block, it recommends `/setup-matt-pocock-skills`. It never runs a setup skill itself.
 
 ## dsh-doc-audits 0.4.0 — 2026-10-13
 

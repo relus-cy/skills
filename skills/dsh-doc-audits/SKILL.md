@@ -32,7 +32,7 @@ Read [workflow](references/workflow.md) for the chosen mode. Read [migration](re
 6. Stop semantic writes for unresolved authority conflicts. Continue independent work with a separate conflict-free plan.
 7. Write policy and facts in the target repository; this global skill owns the method only.
 
-Read [governance core](references/governance-core.md), [Agent Notes](references/agent-notes.md), and [repository contract](references/repository-contract.md) only as needed. For Matt layouts, glossary paths, ADRs or external trackers, read the repository contract's coexistence rules. [Audit rubric](references/audit-rubric.md) bounds semantic claims; [lineage](references/lineage.md) records sources and adaptations. [Small Web App](references/profile-small-web-app.md) is optional guidance, not a required output tree.
+Read [governance core](references/governance-core.md), [Agent Notes](references/agent-notes.md), and [repository contract](references/repository-contract.md) only as needed. For Matt layouts, glossary paths, ADRs or external trackers, or a first run (no `docs/governance.yaml`), read the repository contract's coexistence rules. [Audit rubric](references/audit-rubric.md) bounds semantic claims; [lineage](references/lineage.md) records sources and adaptations. [Small Web App](references/profile-small-web-app.md) is optional guidance, not a required output tree.
 
 ## Use the tools
 
