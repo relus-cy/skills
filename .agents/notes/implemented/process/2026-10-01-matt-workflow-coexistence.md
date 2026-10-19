@@ -12,6 +12,8 @@ The manifest's optional `authority.glossary` owns glossary location; absent conf
 
 Matt-owned terminology, ADRs, agent guides and skill routing remain project-owned. Existing ADR retrieval uses the Agent Notes opt-out; there is no separate ADR parser or lifecycle engine. External tracker close-out is a semantic sync responsibility: durable contracts return to current owners, while tracker contents and state remain outside local verification. The [repository contract](../../../../skills/dsh-doc-audits/references/repository-contract.md#matt-skills-coexistence) owns the operational rules.
 
+On the first run in a repository, the agent asks once whether the project needs a shared issue and pull-request workflow. dsh keeps no run history, so the first run is defined by an observable signal: `docs/governance.yaml` is absent. When Matt's skills are installed but their `## Agent skills` block is missing, the agent recommends Matt's setup and names the evidence. dsh recommends; it does not run the setup or write its output. A real case prompted this: a solo repository listed 41 Matt skills in `skills-lock.json` but had no `## Agent skills` block or `docs/agents/`. Its local tickets and an empty GitHub tracker left the issue location undecided when a second developer joined.
+
 This follows mainstream lightweight [ADR practice](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) for preserving decision context and alternatives. It follows the recognized [Diátaxis separation of explanation and reference](https://diataxis.fr/start-here/) by keeping rationale separate from current contracts. Matt's agent-oriented workflow is the emerging practice being accommodated, not a mandatory dependency or a replacement for DSH governance.
 
 ## Alternatives considered
@@ -23,6 +25,12 @@ This follows mainstream lightweight [ADR practice](https://cognitect.com/blog/20
 **Convert ADRs into Agent Notes.** Another lifecycle adds no retrieval value; the existing Markdown decision-evidence contract already admits ADRs.
 
 **Make every root Markdown file writable.** That enlarges the write surface beyond the demonstrated glossary need. A named authority grants the specific exception while retaining guarded application.
+
+**Run Matt's setup from dsh.** The setup skill is manual-only and asks the user to choose a tracker and labels, and running it would add writes outside a documentation migration. A recommendation keeps that choice with the user.
+
+**Check for the gap in every mode.** Sync runs with each change, so an unconfigured repository would get the same reminder on every run, and the check would make dsh an ongoing monitor of another workflow's configuration. Asking once, when dsh is adopted, keeps the question at the point where a team sets up its workflow.
+
+**Detect only Matt's gap, with no question otherwise.** That ties dsh's behavior to one third-party layout. A general question with a conditional Matt recommendation keeps the Matt file conventions in one recommendation and out of the trigger.
 
 ## Consequences
 
