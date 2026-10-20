@@ -1,6 +1,6 @@
 {
   "repo": "https://github.com/cursor/plugins",
-  "pinned": "2eb7ed4613cfc8f098dfe464a23680ea44d84c5e",
+  "pinned": "88d47514b82e7c44f00f2b2a72ff6dd12158038c",
   "license": "pstack/LICENSE",
   "skills": {
     "create-verification-skill": "pstack/skills/create-verification-skill",
