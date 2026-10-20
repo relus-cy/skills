@@ -63,7 +63,7 @@ Specs and tickets may live in an external issue tracker. Its workflow, contents 
 
 ### Workflow setup gap
 
-dsh does not configure issue trackers, triage labels or branch rules. A repository adopting dsh may still lack that collaboration setup, so ask about it once, on the first run only. The first run is any run where `doctor` reports `governance_manifest: false`. After bootstrap or migration creates `docs/governance.yaml`, sync, audit and upgrade do not ask.
+dsh does not configure issue trackers, triage labels or branch rules. A repository adopting dsh may still lack that collaboration setup, so ask about it once, on the first run only. The first run is any run where `doctor` reports `governance_manifest: false`. After bootstrap or migration creates `docs/governance.yaml`, sync, audit and upgrade do not ask. A [docs-only audit](workflow.md#audit) never asks: it inspects a named document set without governing it.
 
 On the first run, ask the user one question before any write or with audit findings: does the project need a shared issue and pull-request workflow? Add a recommendation only when the repository shows Matt's skills installed and unconfigured:
 

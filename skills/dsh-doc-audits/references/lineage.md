@@ -48,6 +48,10 @@ The optional layout reference is [mattpocock/skills at commit `d81f3a1`](https:/
 
 This bundle contains original compatibility rules, not copied Matt skill implementations, templates or workflow instructions. Matt is an optional workflow reference; DSH remains the documentation-governance method. The [repository contract](repository-contract.md#matt-skills-coexistence) owns the shared-file boundary and [sync](workflow.md#sync) owns durable write-back from external trackers. No Matt skill or tracker integration is installed or invoked by dsh.
 
+## hai-audit-docs ideas
+
+Two audit ideas come from `hai-audit-docs` in `hylarucoder/hai-stack`, as installed and read on 2026-10-20: docs-only internal-consistency audits, and choosing the authority for each claim class so that a missed approved requirement is an implementation gap. The installed copy carried no license file, so no text was copied. The [audit rubric](audit-rubric.md#claim-authority) restates both rules for DSH tiers.
+
 ## Additional workflow reference
 
 The lightweight environment/review/verification boundary also reflects the user-selected engineering discussion at https://tw93.fun/2026-03-12/claude.html. It supplies workflow context, not a repository directory standard or a mandatory runtime dependency.

@@ -6,7 +6,12 @@ Entries for `dsh-doc-audits` carry its version; other skills are unversioned.
 
 - Move every installable skill under `skills/<name>/`; each directory is a complete bundle that can be installed alone. Tests, development tools and design records stay at the repository root and are never installed. `mail-cli` tests move to `tests/mail-cli/`, and vendored skills are generated into `skills/`. Remove the unused root `pyproject.toml`; `dsh-doc-audits` declares its version in `SKILL.md`.
 - Add the manual-only `recall` skill: `recall.py list` and `show` read Claude Code, Codex and Pi transcripts for one repository (cwd, main worktree or Codex `repository_url` match), keep real user messages and each turn's final reply, merge paginated Codex sessions, extract commit SHAs and GitHub PR/issue URLs, redact secrets, and warn on transcript files that no longer parse.
-- dsh-doc-audits asks once about collaboration setup on a repository's first run (no `docs/governance.yaml`). When `skills-lock.json` or a project skill directory shows Matt's skills installed without an `## Agent skills` block, it recommends `/setup-matt-pocock-skills`. It never runs a setup skill itself.
+
+## dsh-doc-audits 0.5.0 — 2026-10-20
+
+- Audit findings name the source that settles their claim class. Current-behavior claims follow code and tests; a mismatch with an approved decision is an implementation gap, reported without weakening the decision. This replaces the previous rule that settled every code/prose mismatch by updating the document.
+- Audit a named docs-only set (for example PRDs without code) for contradictions, terminology drift, boundary and sequence mismatches, and weak acceptance criteria. Text is stale only with supersession evidence inside the set; the report leaves runtime behavior unverified, and the first-run collaboration question is not asked. The activation description now names this scope.
+- Ask once about collaboration setup on a repository's first run (no `docs/governance.yaml`). When `skills-lock.json` or a project skill directory shows Matt's skills installed without an `## Agent skills` block, recommend `/setup-matt-pocock-skills`. dsh never runs a setup skill itself.
 
 ## dsh-doc-audits 0.4.0 — 2026-10-13
 
