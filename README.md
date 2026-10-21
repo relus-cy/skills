@@ -25,7 +25,7 @@ npx skills add relus-cy/skills --skill dsh-doc-audits
 
 Copying a `skills/<name>/` directory into your agent's skills folder works as well.
 
-## dsh-doc-audits · 0.4.0
+## dsh-doc-audits · 0.5.0
 
 A thin, portable adaptation of DeepSeek Harness documentation governance: one current owner per durable fact; separate current behavior, decision rationale and historical work. A capable model decides how to split a project. Local tools validate evidence, reviewed plans, write boundaries and documentation readiness.
 

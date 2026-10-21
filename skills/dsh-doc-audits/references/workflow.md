@@ -21,7 +21,9 @@ On the first run in a repository, ask once about collaboration setup, following 
 
 ## Audit
 
-`audit` runs deterministic checks and heuristic corpus warnings; its output labels itself `structure-only`. A clean result says nothing about whether documents match the code. The agent compares claims against code, tests, configuration, safely executed commands and current decisions. Provide both sides of confirmed mismatches, separate inferred gaps, and list uninspected surfaces. Do not modify files without explicit repair authorization.
+`audit` runs deterministic checks and heuristic corpus warnings; its output labels itself `structure-only`. A clean result says nothing about whether documents match the code. The agent compares claims against code, tests, configuration, safely executed commands and current decisions. Provide both sides of confirmed mismatches, separate inferred gaps, and list uninspected surfaces. Classify each finding by [claim authority](audit-rubric.md#claim-authority). Do not modify files without explicit repair authorization.
+
+A docs-only audit covers a document set the user names when no code is in scope, such as a PRD collection. Inspect only that set; do not widen it to sibling directories. Without `docs/governance.yaml`, `audit` reports `governance-missing`: record that the structural check was skipped. Do not bootstrap, and do not ask the first-run collaboration question; the set is not being governed. Apply the [internal consistency](audit-rubric.md#internal-consistency) checks. The report says the set was checked against itself only and leaves runtime claims unverified.
 
 ## Sync
 

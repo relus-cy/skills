@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TEMPLATE_ROOT = SKILL_ROOT / "assets" / "repo-governance"
 

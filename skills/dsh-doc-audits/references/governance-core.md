@@ -47,7 +47,7 @@ Operational claims require observed evidence:
 - record exact failure behavior when it affects users or operators;
 - mark unavailable checks as unverified and name who or what can verify them.
 
-When code and prose disagree, treat the mismatch as a finding. Do not silently choose convenient prose. Determine the current behavior from source and tests, update its owner, and preserve historical rationale separately.
+When code and prose disagree, treat the mismatch as a finding. Do not silently choose the convenient side. A current-behavior claim follows source and tests: update its owner and preserve historical rationale separately. When code misses approved intended behavior, report an implementation gap instead of rewriting the decision; the [audit rubric](audit-rubric.md#claim-authority) owns this classification.
 
 ## Budgets
 

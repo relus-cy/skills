@@ -1,11 +1,11 @@
 ---
 name: dsh-doc-audits
-description: Use when initializing or migrating repository documentation, auditing stale or conflicting authority, synchronizing docs after a change, or upgrading documentation governance assets.
+description: Use when initializing or migrating repository documentation, auditing stale, contradictory or conflicting documentation authority (including a named docs-only set, such as PRDs without code), synchronizing docs after a change, or upgrading documentation governance assets.
 license: MIT
 compatibility: Python 3.11+ and Git for local checks; no model SDK or network required. Semantic review uses the host's available agent or a human reviewer.
 metadata:
   author: relus-cy
-  version: "0.4.0"
+  version: "0.5.0"
   lineage: deepseek-harness-dsh-doc
 ---
 
@@ -15,7 +15,7 @@ Keep one current owner per durable fact. Separate current behavior, decision rat
 
 ## Choose the smallest workflow
 
-- **audit**: read-only inspection and evidence-based findings. Run local checks, then review meaning. A green `verify` or `audit` is structure-only; it never compares a document with code.
+- **audit**: read-only inspection and evidence-based findings. Run local checks, then review meaning. A green `verify` or `audit` is structure-only; it never compares a document with code. Decide which source settles each claim before choosing what to repair. A docs-only audit checks a named set against itself; it does not show the system behaves as written.
 - **sync**: inspect the selected diff and update affected owners; use reviewed application for multi-file or contract-sensitive changes. When plans/specs ship or external tickets close with durable conclusions, write those conclusions back in the same change; [workflow](references/workflow.md#sync) owns close-out handling.
 - **bootstrap / migrate**: create a draft, investigate the repository, propose owners, review the exact change, apply it, then verify and assess retrieval.
 - **upgrade**: propose reviewed edits only to generated assets. Preserve project-owned docs, mappings and policy.

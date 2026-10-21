@@ -50,11 +50,11 @@ class SkillStructureTests(unittest.TestCase):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
         governance = (ROOT / "docs" / "governance.yaml").read_text(encoding="utf-8")
 
-        self.assertRegex(skill, r'(?m)^  version: "0\.4\.0"$')
-        self.assertRegex(cli, r'(?m)^VERSION = "0\.4\.0"$')
-        self.assertRegex(guard, r"(?m)^VERSION = '0\.4\.0'$")
-        self.assertIn("## dsh-doc-audits 0.4.0", changelog)
-        self.assertIn('"skill_version": "0.4.0"', governance)
+        self.assertRegex(skill, r'(?m)^  version: "0\.5\.0"$')
+        self.assertRegex(cli, r'(?m)^VERSION = "0\.5\.0"$')
+        self.assertRegex(guard, r"(?m)^VERSION = '0\.5\.0'$")
+        self.assertIn("## dsh-doc-audits 0.5.0", changelog)
+        self.assertIn('"skill_version": "0.5.0"', governance)
 
     def test_installed_bundle_carries_license_and_attribution(self) -> None:
         self.assertIn("MIT License", (SKILL / "LICENSE").read_text(encoding="utf-8"))
